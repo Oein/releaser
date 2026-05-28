@@ -1,0 +1,39 @@
+# Example: how to use the Releaser action from another repository
+#
+# In your project's .github/workflows/release.yml:
+#
+# Secrets to set in your repo:
+#   RELEASER_API_KEY  — API key created at https://oein.fyi/admin/api-keys
+#   RELEASER_PROJECT  — Project ID from the Releaser dashboard
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          echo "your build steps here"
+          mkdir -p dist
+          echo "hello" > dist/app-linux
+          echo "hello" > dist/app-win.exe
+
+      - name: Upload to Releaser
+        uses: Oein/releaser@main
+        with:
+          url: https://oein.fyi
+          api-key: ${{ secrets.RELEASER_API_KEY }}
+          project: ${{ secrets.RELEASER_PROJECT }}
+          version: ${{ github.ref_name }}   # e.g. v1.2.3 from the tag
+          type: release
+          description: "Released from GitHub Actions"
+          files: |
+            dist/app-linux
+            dist/app-win.exe

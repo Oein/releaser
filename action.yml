@@ -1,0 +1,115 @@
+name: Releaser Upload
+description: Create a version and upload files to a Releaser instance
+
+inputs:
+  url:
+    description: Base URL of the Releaser instance (e.g. https://oein.fyi)
+    required: true
+  api-key:
+    description: Admin API key
+    required: true
+  project:
+    description: Project ID
+    required: true
+  version:
+    description: Version string (e.g. v1.0.0 / v1.0.0b / nightly)
+    required: true
+  type:
+    description: Version type — release | beta | dev
+    required: false
+    default: release
+  description:
+    description: Release notes / version description
+    required: false
+    default: ''
+  files:
+    description: >
+      Newline-separated list of file paths or glob patterns to upload.
+      Example: |
+        dist/app-linux
+        dist/app-win.exe
+        dist/*.zip
+    required: false
+    default: ''
+
+outputs:
+  version-id:
+    description: ID of the created (or existing) version
+    value: ${{ steps.create-version.outputs.version-id }}
+
+runs:
+  using: composite
+  steps:
+    - name: Create version
+      id: create-version
+      shell: bash
+      env:
+        RELEASER_URL: ${{ inputs.url }}
+        RELEASER_API_KEY: ${{ inputs.api-key }}
+        PROJECT_ID: ${{ inputs.project }}
+        VERSION: ${{ inputs.version }}
+        TYPE: ${{ inputs.type }}
+        DESCRIPTION: ${{ inputs.description }}
+      run: |
+        RESPONSE=$(curl -sf -X POST \
+          "${RELEASER_URL}/api/admin/projects/${PROJECT_ID}/versions" \
+          -H "Authorization: Bearer ${RELEASER_API_KEY}" \
+          -H "Content-Type: application/json" \
+          -d "{\"version\":\"${VERSION}\",\"type\":\"${TYPE}\",\"description\":\"${DESCRIPTION}\"}" \
+          2>&1)
+
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+          "${RELEASER_URL}/api/admin/projects/${PROJECT_ID}/versions" \
+          -H "Authorization: Bearer ${RELEASER_API_KEY}" \
+          -H "Content-Type: application/json" \
+          -d "{\"version\":\"${VERSION}\",\"type\":\"${TYPE}\",\"description\":\"${DESCRIPTION}\"}")
+
+        if [ "$HTTP_CODE" = "201" ]; then
+          echo "✓ Version ${VERSION} created"
+        elif [ "$HTTP_CODE" = "409" ]; then
+          echo "ℹ Version ${VERSION} already exists, continuing"
+        else
+          # Try to get the version ID from an existing version
+          echo "Create returned HTTP ${HTTP_CODE} — checking if version exists"
+        fi
+
+        # Fetch version ID
+        VERSION_DATA=$(curl -sf \
+          "${RELEASER_URL}/api/v1/projects/${PROJECT_ID}/versions/${VERSION}" \
+          -H "Authorization: Bearer ${RELEASER_API_KEY}")
+
+        VERSION_ID=$(echo "$VERSION_DATA" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+        echo "version-id=${VERSION_ID}" >> "$GITHUB_OUTPUT"
+        echo "Version ID: ${VERSION_ID}"
+
+    - name: Upload files
+      if: inputs.files != ''
+      shell: bash
+      env:
+        RELEASER_URL: ${{ inputs.url }}
+        RELEASER_API_KEY: ${{ inputs.api-key }}
+        PROJECT_ID: ${{ inputs.project }}
+        VERSION: ${{ inputs.version }}
+        FILES: ${{ inputs.files }}
+      run: |
+        ENCODED_VERSION=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "$VERSION")
+        UPLOAD_URL="${RELEASER_URL}/api/admin/projects/${PROJECT_ID}/versions/${ENCODED_VERSION}/files"
+
+        echo "$FILES" | while IFS= read -r pattern; do
+          [ -z "$pattern" ] && continue
+          # expand glob
+          for file in $pattern; do
+            [ -f "$file" ] || continue
+            echo "Uploading: $file"
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X POST "$UPLOAD_URL" \
+              -H "Authorization: Bearer ${RELEASER_API_KEY}" \
+              -F "file=@${file}")
+            if [ "$HTTP_CODE" = "201" ]; then
+              echo "  ✓ $(basename $file)"
+            else
+              echo "  ✗ $(basename $file) — HTTP ${HTTP_CODE}"
+              exit 1
+            fi
+          done
+        done
