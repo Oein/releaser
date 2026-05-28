@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 interface Project {
   id: string;
   name: string;
-  description: string | null;
+  summary: string | null;
   created_at: string;
   version_count: number;
 }
@@ -14,7 +14,7 @@ async function getProjects() {
   const { getDb } = await import("@/lib/db");
   const db = getDb();
   return db.prepare(`
-    SELECT p.id, p.name, p.description, p.created_at,
+    SELECT p.id, p.name, p.summary, p.created_at,
            COUNT(v.id) as version_count
     FROM projects p
     LEFT JOIN versions v ON p.id = v.project_id
@@ -65,8 +65,8 @@ export default async function AdminProjectsPage() {
                 >
                   {project.name}
                 </Link>
-                {project.description && (
-                  <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>{project.description}</p>
+                {project.summary && (
+                  <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>{project.summary}</p>
                 )}
               </div>
               <div className="flex items-center gap-6 shrink-0 ml-4">
