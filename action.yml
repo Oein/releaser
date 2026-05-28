@@ -51,6 +51,12 @@ runs:
         TYPE: ${{ inputs.type }}
         DESCRIPTION: ${{ inputs.description }}
       run: |
+        # Auto-prefix 'v' for release/beta if not already present
+        if [[ "$TYPE" != "dev" && "$VERSION" != v* ]]; then
+          VERSION="v${VERSION}"
+          echo "ℹ Normalized version to ${VERSION}"
+        fi
+
         # -s: silent, -w: write HTTP code, -o: response body to file
         # Do NOT use -f — we handle non-2xx ourselves
         BODY=$(mktemp)
