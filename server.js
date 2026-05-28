@@ -18,10 +18,12 @@ const handle = app.getRequestHandler();
 // --- DB setup ---
 const DATA_DIR = path.join(process.cwd(), "data");
 const FILES_DIR = path.join(DATA_DIR, "files");
+const ICONS_DIR = path.join(DATA_DIR, "icons");
 const DB_PATH = path.join(DATA_DIR, "deploy.db");
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(FILES_DIR)) fs.mkdirSync(FILES_DIR, { recursive: true });
+if (!fs.existsSync(ICONS_DIR)) fs.mkdirSync(ICONS_DIR, { recursive: true });
 
 const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
@@ -60,8 +62,11 @@ db.exec(`
   );
 `);
 
+try { db.exec("ALTER TABLE projects ADD COLUMN icon_path TEXT"); } catch {}
+
 global.__db = db;
 global.__filesDir = FILES_DIR;
+global.__iconsDir = ICONS_DIR;
 global.__dataDir = DATA_DIR;
 
 console.log("Database initialized at", DB_PATH);

@@ -17,13 +17,14 @@ interface Project {
   id: string;
   name: string;
   description: string | null;
+  icon_path: string | null;
   created_at: string;
 }
 
 async function getData(id: string) {
   const { getDb } = await import("@/lib/db");
   const db = getDb();
-  const project = db.prepare("SELECT id, name, description, created_at FROM projects WHERE id = ?").get(id) as Project | undefined;
+  const project = db.prepare("SELECT id, name, description, icon_path, created_at FROM projects WHERE id = ?").get(id) as Project | undefined;
   if (!project) return null;
   const versions = db.prepare(
     "SELECT id, project_id, version, type, description, created_at FROM versions WHERE project_id = ? ORDER BY created_at DESC"
@@ -80,12 +81,23 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         </nav>
 
         <div className="bg-white rounded-2xl p-6 mb-6" style={{ border: "1px solid var(--border)" }}>
-          <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>{project.name}</h1>
-          {project.description && (
-            <div className="prose prose-sm mt-2 max-w-none" style={{ color: "var(--text-muted)" }}>
-              <Markdown>{project.description}</Markdown>
+          <div className="flex items-center gap-4">
+            {project.icon_path && (
+              <img
+                src={`/api/projects/${id}/icon`}
+                alt=""
+                className="w-14 h-14 rounded-2xl object-cover shrink-0"
+              />
+            )}
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>{project.name}</h1>
+              {project.description && (
+                <div className="prose prose-sm mt-1 max-w-none" style={{ color: "var(--text-muted)" }}>
+                  <Markdown>{project.description}</Markdown>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {versions.length === 0 ? (

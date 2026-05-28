@@ -6,6 +6,7 @@ interface Project {
   id: string;
   name: string;
   description: string | null;
+  icon_path: string | null;
   created_at: string;
 }
 
@@ -14,7 +15,7 @@ async function getProjects(): Promise<Project[]> {
     const { getDb } = await import("@/lib/db");
     const db = getDb();
     return db
-      .prepare("SELECT id, name, description, created_at FROM projects ORDER BY created_at DESC")
+      .prepare("SELECT id, name, description, icon_path, created_at FROM projects ORDER BY created_at DESC")
       .all() as Project[];
   } catch {
     return [];
@@ -71,11 +72,20 @@ export default async function HomePage() {
                 className="bg-white rounded-2xl p-5 flex items-center justify-between transition-shadow hover:shadow-md"
                 style={{ border: "1px solid var(--border)" }}
               >
-                <div>
-                  <p className="font-semibold text-base" style={{ color: "var(--text)" }}>{project.name}</p>
-                  {project.description && (
-                    <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>{project.description}</p>
+                <div className="flex items-center gap-4 min-w-0">
+                  {project.icon_path && (
+                    <img
+                      src={`/api/projects/${project.id}/icon`}
+                      alt=""
+                      className="w-10 h-10 rounded-xl object-cover shrink-0"
+                    />
                   )}
+                  <div className="min-w-0">
+                    <p className="font-semibold text-base" style={{ color: "var(--text)" }}>{project.name}</p>
+                    {project.description && (
+                      <p className="text-sm mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>{project.description}</p>
+                    )}
+                  </div>
                 </div>
                 <span className="text-xs ml-4 shrink-0" style={{ color: "var(--text-muted)" }}>
                   {new Date(project.created_at).toLocaleDateString()}

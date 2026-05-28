@@ -19,6 +19,7 @@ interface Project {
   id: string;
   name: string;
   description: string | null;
+  icon_path: string | null;
   created_at: string;
 }
 
@@ -63,7 +64,7 @@ export default async function AdminProjectDetailPage({ params }: { params: Promi
         <div className="flex-1 min-w-0 mr-4">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>{project.name}</h1>
-            <EditProjectForm id={id} initialName={project.name} initialDescription={project.description} />
+            <EditProjectForm id={id} initialName={project.name} initialDescription={project.description} hasIcon={!!project.icon_path} />
           <DeleteProjectButton id={id} name={project.name} />
           </div>
           {project.description && (

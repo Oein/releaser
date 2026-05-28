@@ -6,6 +6,8 @@ declare global {
   // eslint-disable-next-line no-var
   var __filesDir: string | undefined;
   // eslint-disable-next-line no-var
+  var __iconsDir: string | undefined;
+  // eslint-disable-next-line no-var
   var __dataDir: string | undefined;
 }
 
@@ -17,6 +19,11 @@ export function getDb(): BetterSqlite3.Database {
 export function getFilesDir(): string {
   if (!global.__filesDir) throw new Error("filesDir not initialized");
   return global.__filesDir;
+}
+
+export function getIconsDir(): string {
+  if (!global.__iconsDir) throw new Error("iconsDir not initialized");
+  return global.__iconsDir;
 }
 
 export function getDataDir(): string {
