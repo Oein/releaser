@@ -30,10 +30,10 @@ export async function POST(request: NextRequest) {
     }
 
     const rawKey = randomBytes(32).toString("hex");
-    const prefix = "dw_" + rawKey.slice(0, 8);
-    const hash = hashApiKey(rawKey);
-    const id = randomUUID();
     const fullKey = "dw_" + rawKey;
+    const prefix = "dw_" + rawKey.slice(0, 8);
+    const hash = hashApiKey(fullKey);
+    const id = randomUUID();
 
     const db = getDb();
     db.prepare(
