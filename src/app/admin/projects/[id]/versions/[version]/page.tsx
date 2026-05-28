@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, use, useEffect, useCallback } from "react";
+import FileIcon from "@/components/FileIcon";
 import Link from "next/link";
 
 interface FileRow {
@@ -156,8 +157,8 @@ export default function AdminVersionPage({ params }: { params: Promise<{ id: str
               style={{ borderBottom: i < files.length - 1 ? "1px solid var(--border)" : "none" }}
             >
               <div className="flex items-center gap-4 min-w-0">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base" style={{ background: "var(--bg)" }}>
-                  📄
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--bg)" }}>
+                  <FileIcon filename={file.filename} />
                 </div>
                 <div className="min-w-0">
                   <p className="font-mono font-medium text-sm truncate" style={{ color: "var(--text)" }}>{file.filename}</p>

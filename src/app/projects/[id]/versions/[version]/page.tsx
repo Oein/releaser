@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import FileIcon from "@/components/FileIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -118,10 +119,10 @@ export default async function VersionPage({ params }: { params: Promise<{ id: st
               >
                 <div className="flex items-center gap-4 min-w-0">
                   <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base"
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                     style={{ background: "var(--bg)" }}
                   >
-                    📄
+                    <FileIcon filename={file.filename} />
                   </div>
                   <div className="min-w-0">
                     <p className="font-mono font-medium text-sm truncate" style={{ color: "var(--text)" }}>{file.filename}</p>
