@@ -63,6 +63,7 @@ db.exec(`
 `);
 
 try { db.exec("ALTER TABLE projects ADD COLUMN icon_path TEXT"); } catch {}
+try { db.exec("ALTER TABLE projects ADD COLUMN summary TEXT"); } catch {}
 
 global.__db = db;
 global.__filesDir = FILES_DIR;

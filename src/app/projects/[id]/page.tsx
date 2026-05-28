@@ -16,15 +16,21 @@ interface Version {
 interface Project {
   id: string;
   name: string;
+  summary: string | null;
   description: string | null;
   icon_path: string | null;
   created_at: string;
 }
 
+function firstLine(s: string | null): string | null {
+  if (!s) return null;
+  return s.split("\n")[0].trim() || null;
+}
+
 async function getData(id: string) {
   const { getDb } = await import("@/lib/db");
   const db = getDb();
-  const project = db.prepare("SELECT id, name, description, icon_path, created_at FROM projects WHERE id = ?").get(id) as Project | undefined;
+  const project = db.prepare("SELECT id, name, summary, description, icon_path, created_at FROM projects WHERE id = ?").get(id) as Project | undefined;
   if (!project) return null;
   const versions = db.prepare(
     "SELECT id, project_id, version, type, description, created_at FROM versions WHERE project_id = ? ORDER BY created_at DESC"
@@ -92,13 +98,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             )}
             <div className="min-w-0">
               <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>{project.name}</h1>
-              {project.description && (
-                <div className="prose prose-sm mt-1 max-w-none" style={{ color: "var(--text-muted)" }}>
-                  <Markdown>{project.description}</Markdown>
-                </div>
+              {project.summary && (
+                <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{project.summary}</p>
               )}
             </div>
           </div>
+          {project.description && (
+            <div className="markdown mt-4 text-sm" style={{ color: "var(--text-muted)" }}>
+              <Markdown>{project.description}</Markdown>
+            </div>
+          )}
         </div>
 
         {versions.length === 0 ? (
@@ -118,30 +127,33 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     {cfg.label}
                   </h2>
                   <div className="space-y-2">
-                    {group.map((v) => (
-                      <Link
-                        key={v.id}
-                        href={`/projects/${id}/versions/${encodeURIComponent(v.version)}`}
-                        className="bg-white rounded-2xl px-5 py-4 flex items-center justify-between transition-shadow hover:shadow-md"
-                        style={{ border: "1px solid var(--border)" }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span
-                            className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                            style={cfg.badge}
-                          >
-                            {type}
+                    {group.map((v) => {
+                      const line = firstLine(v.description);
+                      return (
+                        <Link
+                          key={v.id}
+                          href={`/projects/${id}/versions/${encodeURIComponent(v.version)}`}
+                          className="bg-white rounded-2xl px-5 py-4 flex items-center justify-between transition-shadow hover:shadow-md"
+                          style={{ border: "1px solid var(--border)" }}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span
+                              className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
+                              style={cfg.badge}
+                            >
+                              {type}
+                            </span>
+                            <span className="font-mono font-semibold text-sm shrink-0" style={{ color: "var(--text)" }}>{v.version}</span>
+                            {line && (
+                              <span className="text-sm hidden sm:block truncate" style={{ color: "var(--text-muted)" }}>— {line}</span>
+                            )}
+                          </div>
+                          <span className="text-xs shrink-0 ml-3" style={{ color: "var(--text-muted)" }}>
+                            {new Date(v.created_at).toLocaleDateString()}
                           </span>
-                          <span className="font-mono font-semibold text-sm" style={{ color: "var(--text)" }}>{v.version}</span>
-                          {v.description && (
-                            <span className="text-sm hidden sm:block" style={{ color: "var(--text-muted)" }}>— {v.description}</span>
-                          )}
-                        </div>
-                        <span className="text-xs shrink-0 ml-3" style={{ color: "var(--text-muted)" }}>
-                          {new Date(v.created_at).toLocaleDateString()}
-                        </span>
-                      </Link>
-                    ))}
+                        </Link>
+                      );
+                    })}
                   </div>
                 </section>
               );

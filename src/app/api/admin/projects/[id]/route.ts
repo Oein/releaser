@@ -19,7 +19,7 @@ export async function PATCH(
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
   const body = await request.json();
-  const { name, description } = body;
+  const { name, summary, description } = body;
 
   if (name !== undefined) {
     if (typeof name !== "string" || !name.trim()) {
@@ -33,6 +33,11 @@ export async function PATCH(
       }
       throw err;
     }
+  }
+
+  if (summary !== undefined) {
+    db.prepare("UPDATE projects SET summary = ? WHERE id = ?")
+      .run(summary?.trim() || null, id);
   }
 
   if (description !== undefined) {

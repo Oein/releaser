@@ -18,6 +18,7 @@ interface Version {
 interface Project {
   id: string;
   name: string;
+  summary: string | null;
   description: string | null;
   icon_path: string | null;
   created_at: string;
@@ -64,11 +65,11 @@ export default async function AdminProjectDetailPage({ params }: { params: Promi
         <div className="flex-1 min-w-0 mr-4">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>{project.name}</h1>
-            <EditProjectForm id={id} initialName={project.name} initialDescription={project.description} hasIcon={!!project.icon_path} />
+            <EditProjectForm id={id} initialName={project.name} initialSummary={project.summary} initialDescription={project.description} hasIcon={!!project.icon_path} />
           <DeleteProjectButton id={id} name={project.name} />
           </div>
-          {project.description && (
-            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{project.description}</p>
+          {project.summary && (
+            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{project.summary}</p>
           )}
         </div>
         <Link
@@ -110,7 +111,7 @@ export default async function AdminProjectDetailPage({ params }: { params: Promi
                   </span>
                   <span className="font-mono font-semibold text-sm" style={{ color: "var(--text)" }}>{v.version}</span>
                   {v.description && (
-                    <span className="text-sm hidden md:block" style={{ color: "var(--text-muted)" }}>— {v.description}</span>
+                    <span className="text-sm hidden md:block" style={{ color: "var(--text-muted)" }}>— {v.description.split("\n")[0].trim()}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-5 shrink-0 ml-3">

@@ -8,14 +8,16 @@ import MarkdownEditor from "@/components/MarkdownEditor";
 interface Props {
   id: string;
   initialName: string;
+  initialSummary: string | null;
   initialDescription: string | null;
   hasIcon: boolean;
 }
 
-export default function EditProjectForm({ id, initialName, initialDescription, hasIcon }: Props) {
+export default function EditProjectForm({ id, initialName, initialSummary, initialDescription, hasIcon }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(initialName);
+  const [summary, setSummary] = useState(initialSummary ?? "");
   const [description, setDescription] = useState(initialDescription ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -27,6 +29,7 @@ export default function EditProjectForm({ id, initialName, initialDescription, h
 
   function handleOpen() {
     setName(initialName);
+    setSummary(initialSummary ?? "");
     setDescription(initialDescription ?? "");
     setError("");
     setIconPreview(null);
@@ -74,7 +77,7 @@ export default function EditProjectForm({ id, initialName, initialDescription, h
       const res = await fetch(`/api/admin/projects/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({ name, summary, description }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Failed to update"); return; }
@@ -195,7 +198,20 @@ export default function EditProjectForm({ id, initialName, initialDescription, h
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>설명</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>한줄 설명</label>
+            <input
+              type="text"
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              placeholder="프로젝트를 한 문장으로 소개해주세요"
+              className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
+              style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--brand)")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>본문 설명 (Markdown)</label>
             <MarkdownEditor value={description} onChange={setDescription} />
           </div>
           <div className="flex gap-2 pt-2">

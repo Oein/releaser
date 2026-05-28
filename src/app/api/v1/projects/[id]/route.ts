@@ -8,7 +8,7 @@ export async function GET(
   const { id } = await params;
   const db = getDb();
   const project = db
-    .prepare("SELECT id, name, description, created_at FROM projects WHERE id = ?")
+    .prepare("SELECT id, name, summary, description, created_at FROM projects WHERE id = ?")
     .get(id);
 
   if (!project) {

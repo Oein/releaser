@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 interface Project {
   id: string;
   name: string;
-  description: string | null;
+  summary: string | null;
   icon_path: string | null;
   created_at: string;
 }
@@ -15,7 +15,7 @@ async function getProjects(): Promise<Project[]> {
     const { getDb } = await import("@/lib/db");
     const db = getDb();
     return db
-      .prepare("SELECT id, name, description, icon_path, created_at FROM projects ORDER BY created_at DESC")
+      .prepare("SELECT id, name, summary, icon_path, created_at FROM projects ORDER BY created_at DESC")
       .all() as Project[];
   } catch {
     return [];
@@ -83,8 +83,8 @@ export default async function HomePage() {
                   )}
                   <div className="min-w-0">
                     <p className="font-semibold text-base" style={{ color: "var(--text)" }}>{project.name}</p>
-                    {project.description && (
-                      <p className="text-sm mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>{project.description}</p>
+                    {project.summary && (
+                      <p className="text-sm mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>{project.summary}</p>
                     )}
                   </div>
                 </div>

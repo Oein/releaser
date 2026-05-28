@@ -93,7 +93,7 @@ export default async function VersionPage({ params }: { params: Promise<{ id: st
             </span>
           </div>
           {versionRow.description && (
-            <div className="prose prose-sm mt-2 max-w-none" style={{ color: "var(--text-muted)" }}>
+            <div className="markdown mt-3 text-sm" style={{ color: "var(--text-muted)" }}>
               <Markdown>{versionRow.description}</Markdown>
             </div>
           )}
