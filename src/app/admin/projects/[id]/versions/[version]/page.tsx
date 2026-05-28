@@ -3,6 +3,7 @@
 import { useState, use, useEffect, useCallback } from "react";
 import FileIcon from "@/components/FileIcon";
 import EditVersionForm from "./EditVersionForm";
+import DeleteVersionButton from "./DeleteVersionButton";
 import Link from "next/link";
 
 interface FileRow {
@@ -105,6 +106,7 @@ export default function AdminVersionPage({ params }: { params: Promise<{ id: str
             <h1 className="text-2xl font-bold font-mono" style={{ color: "var(--text)" }}>{versionData.version}</h1>
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={badge}>{versionData.type}</span>
             <EditVersionForm projectId={id} version={version} initialDescription={versionData.description} />
+            <DeleteVersionButton projectId={id} version={version} />
           </div>
           {versionData.description && (
             <p className="text-sm mt-2" style={{ color: "var(--text-muted)" }}>{versionData.description}</p>
