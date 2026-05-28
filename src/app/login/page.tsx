@@ -15,21 +15,14 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, password }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Login failed");
-        return;
-      }
-
+      if (!res.ok) { setError(data.error || "Login failed"); return; }
       router.push("/admin");
     } catch {
       setError("Network error");
@@ -39,27 +32,39 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "var(--bg)" }}>
       <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-white">Deploy Web</h1>
-          <p className="text-gray-400 mt-1">Admin Login</p>
+        <div className="text-center mb-8">
+          <span className="text-4xl font-black block mb-3" style={{ color: "var(--brand)" }}>◆</span>
+          <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Releaser</h1>
+          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Admin Login</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-gray-900 border border-gray-800 rounded-lg p-6 space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white rounded-3xl p-7 space-y-4"
+          style={{ border: "1px solid var(--border)", boxShadow: "0 4px 24px 0 rgba(0,0,0,0.06)" }}
+        >
           {error && (
-            <div className="bg-red-900/30 border border-red-700 text-red-300 text-sm px-3 py-2 rounded">
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Username</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>Username</label>
             <input
               type="text"
               value={id}
               onChange={(e) => setId(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 text-white rounded px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+              className="w-full rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
+              style={{
+                background: "var(--bg)",
+                border: "1px solid var(--border)",
+                color: "var(--text)",
+              }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--brand)")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
               placeholder="admin"
               required
               autoFocus
@@ -67,12 +72,19 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Password</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 text-white rounded px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+              className="w-full rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
+              style={{
+                background: "var(--bg)",
+                border: "1px solid var(--border)",
+                color: "var(--text)",
+              }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--brand)")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
               placeholder="••••••••"
               required
             />
@@ -81,14 +93,15 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded px-4 py-2 text-sm font-medium transition-colors"
+            className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-50 mt-2"
+            style={{ background: "var(--brand)" }}
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
-        <p className="text-center mt-4">
-          <Link href="/" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">
+        <p className="text-center mt-5">
+          <Link href="/" className="text-sm transition-colors" style={{ color: "var(--text-muted)" }}>
             ← Back to home
           </Link>
         </p>

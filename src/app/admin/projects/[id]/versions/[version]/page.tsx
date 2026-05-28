@@ -25,11 +25,13 @@ function formatBytes(bytes: number | null): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export default function AdminVersionPage({
-  params,
-}: {
-  params: Promise<{ id: string; version: string }>;
-}) {
+const TYPE_BADGE: Record<string, { background: string; color: string }> = {
+  release: { background: "#dcfce7", color: "#15803d" },
+  beta:    { background: "#fef9c3", color: "#a16207" },
+  dev:     { background: "#dbeafe", color: "#1d4ed8" },
+};
+
+export default function AdminVersionPage({ params }: { params: Promise<{ id: string; version: string }> }) {
   const { id, version: encodedVersion } = use(params);
   const version = decodeURIComponent(encodedVersion);
 
@@ -46,54 +48,30 @@ export default function AdminVersionPage({
         fetch(`/api/v1/projects/${id}/versions/${encodeURIComponent(version)}`),
         fetch(`/api/v1/projects/${id}/versions/${encodeURIComponent(version)}/files`),
       ]);
-      if (vRes.ok) {
-        const vData = await vRes.json();
-        setVersionData(vData.version);
-      }
-      if (fRes.ok) {
-        const fData = await fRes.json();
-        setFiles(fData.files);
-      }
+      if (vRes.ok) setVersionData((await vRes.json()).version);
+      if (fRes.ok) setFiles((await fRes.json()).files);
     } finally {
       setLoading(false);
     }
   }, [id, version]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   async function handleUpload(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setUploadError("");
     setUploadSuccess("");
     setUploading(true);
-
     const form = e.currentTarget;
     const fileInput = form.elements.namedItem("file") as HTMLInputElement;
-
-    if (!fileInput.files || fileInput.files.length === 0) {
-      setUploadError("Please select a file");
-      setUploading(false);
-      return;
-    }
-
+    if (!fileInput.files?.length) { setUploadError("Please select a file"); setUploading(false); return; }
     const formData = new FormData();
     formData.append("file", fileInput.files[0]);
-
     try {
-      const res = await fetch(
-        `/api/admin/projects/${id}/versions/${encodeURIComponent(version)}/files`,
-        { method: "POST", body: formData }
-      );
-
+      const res = await fetch(`/api/admin/projects/${id}/versions/${encodeURIComponent(version)}/files`, { method: "POST", body: formData });
       const data = await res.json();
-      if (!res.ok) {
-        setUploadError(data.error || "Upload failed");
-        return;
-      }
-
-      setUploadSuccess(`File "${data.file.filename}" uploaded successfully`);
+      if (!res.ok) { setUploadError(data.error || "Upload failed"); return; }
+      setUploadSuccess(`"${data.file.filename}" uploaded successfully`);
       form.reset();
       await loadData();
     } catch {
@@ -103,112 +81,106 @@ export default function AdminVersionPage({
     }
   }
 
-  const TYPE_BADGE: Record<string, string> = {
-    release: "bg-green-900/50 text-green-300 border-green-800",
-    beta: "bg-yellow-900/50 text-yellow-300 border-yellow-800",
-    dev: "bg-blue-900/50 text-blue-300 border-blue-800",
-  };
-
   if (loading) {
-    return (
-      <div className="p-6">
-        <div className="text-gray-400">Loading...</div>
-      </div>
-    );
+    return <div className="p-8 text-sm" style={{ color: "var(--text-muted)" }}>Loading...</div>;
   }
 
+  const badge = versionData ? (TYPE_BADGE[versionData.type] ?? { background: "#f4f4f5", color: "#71717a" }) : null;
+
   return (
-    <div className="p-6">
-      <nav className="text-sm text-gray-500 mb-4">
-        <Link href="/admin/projects" className="hover:text-gray-300">Projects</Link>
-        <span className="mx-2">/</span>
-        <Link href={`/admin/projects/${id}`} className="hover:text-gray-300">Project</Link>
-        <span className="mx-2">/</span>
-        <span className="text-gray-300 font-mono">{version}</span>
+    <div className="p-8">
+      <nav className="flex items-center gap-1.5 text-sm mb-6" style={{ color: "var(--text-muted)" }}>
+        <Link href="/admin/projects" className="hover:underline" style={{ color: "var(--text-muted)" }}>Projects</Link>
+        <span>/</span>
+        <Link href={`/admin/projects/${id}`} className="hover:underline" style={{ color: "var(--text-muted)" }}>Project</Link>
+        <span>/</span>
+        <span className="font-mono" style={{ color: "var(--text)" }}>{version}</span>
       </nav>
 
-      {versionData && (
-        <div className="flex items-center gap-3 mb-6">
-          <h1 className="text-2xl font-bold text-white font-mono">{versionData.version}</h1>
-          <span className={`text-xs px-2 py-0.5 rounded border ${TYPE_BADGE[versionData.type] || "bg-gray-800 text-gray-300"}`}>
-            {versionData.type}
-          </span>
+      {versionData && badge && (
+        <div className="flex items-center gap-3 mb-8">
+          <h1 className="text-2xl font-bold font-mono" style={{ color: "var(--text)" }}>{versionData.version}</h1>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={badge}>{versionData.type}</span>
         </div>
       )}
 
-      {/* Upload Section */}
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-5 mb-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Upload File</h2>
-        <form onSubmit={handleUpload} className="flex items-start gap-3">
-          <div className="flex-1">
-            {uploadError && (
-              <div className="bg-red-900/30 border border-red-700 text-red-300 text-sm px-3 py-2 rounded mb-2">
-                {uploadError}
-              </div>
-            )}
-            {uploadSuccess && (
-              <div className="bg-green-900/30 border border-green-700 text-green-300 text-sm px-3 py-2 rounded mb-2">
-                {uploadSuccess}
-              </div>
-            )}
+      {/* Upload */}
+      <div className="bg-white rounded-2xl p-6 mb-6" style={{ border: "1px solid var(--border)" }}>
+        <h2 className="text-base font-semibold mb-4" style={{ color: "var(--text)" }}>Upload File</h2>
+        <form onSubmit={handleUpload}>
+          {uploadError && (
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-3">{uploadError}</div>
+          )}
+          {uploadSuccess && (
+            <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-3">{uploadSuccess}</div>
+          )}
+          <div className="flex items-center gap-3">
             <input
               type="file"
               name="file"
-              className="w-full text-sm text-gray-300 bg-gray-800 border border-gray-700 rounded px-3 py-2 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer"
+              className="flex-1 text-sm rounded-xl px-4 py-2.5 cursor-pointer"
+              style={{
+                background: "var(--bg)",
+                border: "1px solid var(--border)",
+                color: "var(--text)",
+              }}
               required
             />
+            <button
+              type="submit"
+              disabled={uploading}
+              className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white whitespace-nowrap transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{ background: "var(--brand)" }}
+            >
+              {uploading ? "Uploading..." : "Upload"}
+            </button>
           </div>
-          <button
-            type="submit"
-            disabled={uploading}
-            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 py-2 rounded text-sm font-medium whitespace-nowrap transition-colors"
-          >
-            {uploading ? "Uploading..." : "Upload"}
-          </button>
         </form>
       </div>
 
-      {/* Files list */}
-      <h2 className="text-lg font-semibold text-white mb-3">Files ({files.length})</h2>
+      {/* Files */}
+      <h2 className="text-sm font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>
+        Files ({files.length})
+      </h2>
 
       {files.length === 0 ? (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 text-center">
-          <p className="text-gray-400">No files uploaded yet.</p>
+        <div className="bg-white rounded-2xl p-10 text-center" style={{ border: "1px solid var(--border)" }}>
+          <p className="font-medium" style={{ color: "var(--text-muted)" }}>No files uploaded yet.</p>
         </div>
       ) : (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-800">
-                <th className="text-left text-xs text-gray-500 uppercase px-4 py-3">Filename</th>
-                <th className="text-left text-xs text-gray-500 uppercase px-4 py-3">Size</th>
-                <th className="text-left text-xs text-gray-500 uppercase px-4 py-3">MIME Type</th>
-                <th className="text-left text-xs text-gray-500 uppercase px-4 py-3">Date</th>
-                <th className="text-right text-xs text-gray-500 uppercase px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {files.map((file) => (
-                <tr key={file.id} className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50">
-                  <td className="px-4 py-3 text-white font-mono text-sm">{file.filename}</td>
-                  <td className="px-4 py-3 text-gray-400 text-sm">{formatBytes(file.size)}</td>
-                  <td className="px-4 py-3 text-gray-400 text-sm">{file.mime_type || "—"}</td>
-                  <td className="px-4 py-3 text-gray-500 text-sm">
-                    {new Date(file.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <a
-                      href={`/api/v1/projects/${id}/versions/${encodeURIComponent(version)}/files/${file.id}`}
-                      className="text-indigo-400 hover:text-indigo-300 text-sm transition-colors"
-                      download={file.filename}
-                    >
-                      Download
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+          {files.map((file, i) => (
+            <div
+              key={file.id}
+              className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: i < files.length - 1 ? "1px solid var(--border)" : "none" }}
+            >
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base" style={{ background: "var(--bg)" }}>
+                  📄
+                </div>
+                <div className="min-w-0">
+                  <p className="font-mono font-medium text-sm truncate" style={{ color: "var(--text)" }}>{file.filename}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                    {formatBytes(file.size)}{file.mime_type ? ` · ${file.mime_type}` : ""}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 shrink-0 ml-3">
+                <span className="text-xs hidden sm:block" style={{ color: "var(--text-muted)" }}>
+                  {new Date(file.created_at).toLocaleDateString()}
+                </span>
+                <a
+                  href={`/api/v1/projects/${id}/versions/${encodeURIComponent(version)}/files/${file.id}`}
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-opacity hover:opacity-80"
+                  style={{ background: "var(--bg)", color: "var(--text)", border: "1px solid var(--border)" }}
+                  download={file.filename}
+                >
+                  Download
+                </a>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

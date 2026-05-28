@@ -15,41 +15,44 @@ export default async function AdminDashboard() {
   const stats = await getStats();
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-white mb-6">Dashboard</h1>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--text)" }}>Dashboard</h1>
+      <p className="text-sm mb-8" style={{ color: "var(--text-muted)" }}>Overview of your releases</p>
 
       <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-5">
-          <p className="text-gray-400 text-sm">Projects</p>
-          <p className="text-3xl font-bold text-white mt-1">{stats.projects}</p>
-          <Link href="/admin/projects" className="text-indigo-400 hover:text-indigo-300 text-xs mt-2 inline-block">
-            View all →
-          </Link>
-        </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-5">
-          <p className="text-gray-400 text-sm">Versions</p>
-          <p className="text-3xl font-bold text-white mt-1">{stats.versions}</p>
-        </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-5">
-          <p className="text-gray-400 text-sm">Files</p>
-          <p className="text-3xl font-bold text-white mt-1">{stats.files}</p>
-        </div>
+        {[
+          { label: "Projects", value: stats.projects, href: "/admin/projects" },
+          { label: "Versions", value: stats.versions, href: null },
+          { label: "Files", value: stats.files, href: null },
+        ].map(({ label, value, href }) => (
+          <div key={label} className="bg-white rounded-2xl p-5" style={{ border: "1px solid var(--border)" }}>
+            <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>{label}</p>
+            <p className="text-3xl font-bold mt-1" style={{ color: "var(--text)" }}>{value}</p>
+            {href && (
+              <Link href={href} className="text-xs mt-2 inline-block font-medium" style={{ color: "var(--brand-dark)" }}>
+                View all →
+              </Link>
+            )}
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <Link
           href="/admin/projects/new"
-          className="bg-gray-900 border border-gray-800 hover:border-indigo-700 rounded-lg p-5 transition-colors"
+          className="bg-white rounded-2xl p-5 transition-shadow hover:shadow-md"
+          style={{ border: "1px solid var(--border)" }}
         >
-          <h3 className="text-white font-medium">New Project</h3>
-          <p className="text-gray-400 text-sm mt-1">Create a new release project</p>
+          <p className="font-semibold text-base" style={{ color: "var(--text)" }}>New Project</p>
+          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Create a new release project</p>
         </Link>
         <Link
           href="/admin/api-keys"
-          className="bg-gray-900 border border-gray-800 hover:border-indigo-700 rounded-lg p-5 transition-colors"
+          className="bg-white rounded-2xl p-5 transition-shadow hover:shadow-md"
+          style={{ border: "1px solid var(--border)" }}
         >
-          <h3 className="text-white font-medium">API Keys</h3>
-          <p className="text-gray-400 text-sm mt-1">Manage API access keys</p>
+          <p className="font-semibold text-base" style={{ color: "var(--text)" }}>API Keys</p>
+          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Manage API access keys</p>
         </Link>
       </div>
     </div>

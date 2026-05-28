@@ -5,16 +5,18 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const VERSION_HINTS: Record<string, string> = {
-  release: "e.g., v1.0.0, v2.3.4 — must match /^v\\d+\\.\\d+\\.\\d+$/",
+  release: "e.g., v1.0.0, v2.3.4 — must match v{Major}.{Minor}.{Patch}",
   beta: "e.g., v1.0.9b, v2.0.3b, v3.5.16.88b",
-  dev: "any non-empty string, e.g., nightly-2025-01-15, feature-xyz",
+  dev: "any non-empty string, e.g., nightly-2025-01-15",
 };
 
-export default function NewVersionPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+const TYPE_COLORS: Record<string, { bg: string; text: string; activeBg: string; activeText: string }> = {
+  release: { bg: "#f0fdf4", text: "#15803d", activeBg: "#dcfce7", activeText: "#15803d" },
+  beta:    { bg: "#fefce8", text: "#a16207", activeBg: "#fef9c3", activeText: "#a16207" },
+  dev:     { bg: "#eff6ff", text: "#1d4ed8", activeBg: "#dbeafe", activeText: "#1d4ed8" },
+};
+
+export default function NewVersionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const [version, setVersion] = useState("");
@@ -27,21 +29,14 @@ export default function NewVersionPage({
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       const res = await fetch(`/api/admin/projects/${id}/versions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ version, type, description }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Failed to create version");
-        return;
-      }
-
+      if (!res.ok) { setError(data.error || "Failed to create version"); return; }
       router.push(`/admin/projects/${id}/versions/${encodeURIComponent(data.version.version)}`);
     } catch {
       setError("Network error");
@@ -50,81 +45,102 @@ export default function NewVersionPage({
     }
   }
 
+  const inputStyle = {
+    background: "var(--bg)",
+    border: "1px solid var(--border)",
+    color: "var(--text)",
+  };
+
   return (
-    <div className="p-6 max-w-xl">
-      <nav className="text-sm text-gray-500 mb-4">
-        <Link href="/admin/projects" className="hover:text-gray-300">Projects</Link>
-        <span className="mx-2">/</span>
-        <Link href={`/admin/projects/${id}`} className="hover:text-gray-300">Project</Link>
-        <span className="mx-2">/</span>
-        <span className="text-gray-300">New Version</span>
+    <div className="p-8 max-w-xl">
+      <nav className="flex items-center gap-1.5 text-sm mb-6" style={{ color: "var(--text-muted)" }}>
+        <Link href="/admin/projects" className="hover:underline" style={{ color: "var(--text-muted)" }}>Projects</Link>
+        <span>/</span>
+        <Link href={`/admin/projects/${id}`} className="hover:underline" style={{ color: "var(--text-muted)" }}>Project</Link>
+        <span>/</span>
+        <span style={{ color: "var(--text)" }}>New Version</span>
       </nav>
 
-      <h1 className="text-2xl font-bold text-white mb-6">New Version</h1>
+      <h1 className="text-2xl font-bold mb-6" style={{ color: "var(--text)" }}>New Version</h1>
 
-      <form onSubmit={handleSubmit} className="bg-gray-900 border border-gray-800 rounded-lg p-6 space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white rounded-2xl p-6 space-y-5"
+        style={{ border: "1px solid var(--border)" }}
+      >
         {error && (
-          <div className="bg-red-900/30 border border-red-700 text-red-300 text-sm px-3 py-2 rounded">
-            {error}
-          </div>
+          <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>
         )}
 
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Version Type *</label>
+          <label className="block text-sm font-medium mb-2" style={{ color: "var(--text)" }}>Version Type *</label>
           <div className="flex gap-2">
-            {(["release", "beta", "dev"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setType(t)}
-                className={`flex-1 py-2 rounded text-sm font-medium border transition-colors ${
-                  type === t
-                    ? "bg-indigo-600 border-indigo-500 text-white"
-                    : "bg-gray-800 border-gray-700 text-gray-400 hover:text-white"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
+            {(["release", "beta", "dev"] as const).map((t) => {
+              const colors = TYPE_COLORS[t];
+              const isActive = type === t;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setType(t)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                  style={{
+                    background: isActive ? colors.activeBg : colors.bg,
+                    color: isActive ? colors.activeText : colors.text,
+                    border: isActive ? `2px solid ${colors.activeText}30` : `1px solid transparent`,
+                  }}
+                >
+                  {t}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Version String *</label>
+          <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>Version String *</label>
           <input
             type="text"
             value={version}
             onChange={(e) => setVersion(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 text-white rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-indigo-500"
+            className="w-full rounded-xl px-4 py-2.5 text-sm font-mono outline-none"
+            style={inputStyle}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "var(--brand)")}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
             placeholder={type === "release" ? "v1.0.0" : type === "beta" ? "v1.0.0b" : "nightly-build"}
             required
             autoFocus
           />
-          <p className="text-gray-500 text-xs mt-1">{VERSION_HINTS[type]}</p>
+          <p className="text-xs mt-1.5" style={{ color: "var(--text-muted)" }}>{VERSION_HINTS[type]}</p>
         </div>
 
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Description</label>
+          <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>Description</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full bg-gray-800 border border-gray-700 text-white rounded px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 resize-none"
+            className="w-full rounded-xl px-4 py-2.5 text-sm outline-none resize-none"
+            style={inputStyle}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "var(--brand)")}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
             placeholder="Optional release notes..."
           />
         </div>
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-3 pt-1">
           <button
             type="submit"
             disabled={loading}
-            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
+            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            style={{ background: "var(--brand)" }}
           >
             {loading ? "Creating..." : "Create Version"}
           </button>
           <Link
             href={`/admin/projects/${id}`}
-            className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded text-sm font-medium transition-colors"
+            className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+            style={{ background: "var(--bg)", color: "var(--text)", border: "1px solid var(--border)" }}
           >
             Cancel
           </Link>

@@ -22,37 +22,33 @@ interface Project {
 async function getData(id: string) {
   const { getDb } = await import("@/lib/db");
   const db = getDb();
-  const project = db
-    .prepare("SELECT id, name, description, created_at FROM projects WHERE id = ?")
-    .get(id) as Project | undefined;
-
+  const project = db.prepare("SELECT id, name, description, created_at FROM projects WHERE id = ?").get(id) as Project | undefined;
   if (!project) return null;
-
-  const versions = db
-    .prepare(
-      "SELECT id, project_id, version, type, description, created_at FROM versions WHERE project_id = ? ORDER BY created_at DESC"
-    )
-    .all(id) as Version[];
-
+  const versions = db.prepare(
+    "SELECT id, project_id, version, type, description, created_at FROM versions WHERE project_id = ? ORDER BY created_at DESC"
+  ).all(id) as Version[];
   return { project, versions };
 }
 
-const TYPE_LABELS = {
-  release: { label: "Releases", color: "text-green-400", badge: "bg-green-900/50 text-green-300 border-green-800" },
-  beta: { label: "Beta", color: "text-yellow-400", badge: "bg-yellow-900/50 text-yellow-300 border-yellow-800" },
-  dev: { label: "Dev", color: "text-blue-400", badge: "bg-blue-900/50 text-blue-300 border-blue-800" },
+const TYPE_CONFIG = {
+  release: {
+    label: "Releases",
+    badge: { background: "#dcfce7", color: "#15803d", border: "#bbf7d0" },
+  },
+  beta: {
+    label: "Beta",
+    badge: { background: "#fef9c3", color: "#a16207", border: "#fde68a" },
+  },
+  dev: {
+    label: "Dev",
+    badge: { background: "#dbeafe", color: "#1d4ed8", border: "#bfdbfe" },
+  },
 };
 
-export default async function ProjectPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const data = await getData(id);
-
   if (!data) notFound();
-
   const { project, versions } = data;
 
   const grouped = {
@@ -62,51 +58,70 @@ export default async function ProjectPage({
   };
 
   return (
-    <div className="min-h-screen bg-gray-950">
-      <header className="border-b border-gray-800 bg-gray-900">
-        <div className="max-w-5xl mx-auto px-4 py-4">
-          <nav className="text-sm text-gray-500 mb-2">
-            <Link href="/" className="hover:text-gray-300 transition-colors">Home</Link>
-            <span className="mx-2">/</span>
-            <span className="text-gray-300">{project.name}</span>
-          </nav>
-          <h1 className="text-xl font-bold text-white">{project.name}</h1>
-          {project.description && <p className="text-gray-400 text-sm mt-1">{project.description}</p>}
+    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+      <header className="bg-white border-b" style={{ borderColor: "var(--border)" }}>
+        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="text-2xl font-black" style={{ color: "var(--brand)" }}>◆</span>
+            <span className="text-lg font-bold" style={{ color: "var(--text)" }}>Releaser</span>
+          </Link>
+          <Link href="/docs" className="text-sm font-medium transition-colors hover:opacity-70" style={{ color: "var(--text-muted)" }}>
+            API Docs
+          </Link>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      <main className="max-w-5xl mx-auto px-6 py-10">
+        <nav className="flex items-center gap-1.5 text-sm mb-6" style={{ color: "var(--text-muted)" }}>
+          <Link href="/" className="hover:underline" style={{ color: "var(--text-muted)" }}>Home</Link>
+          <span>/</span>
+          <span style={{ color: "var(--text)" }}>{project.name}</span>
+        </nav>
+
+        <div className="bg-white rounded-2xl p-6 mb-6" style={{ border: "1px solid var(--border)" }}>
+          <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>{project.name}</h1>
+          {project.description && (
+            <p className="text-sm mt-1.5" style={{ color: "var(--text-muted)" }}>{project.description}</p>
+          )}
+        </div>
+
         {versions.length === 0 ? (
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 text-center">
-            <p className="text-gray-400">No versions available yet.</p>
+          <div className="bg-white rounded-2xl p-12 text-center" style={{ border: "1px solid var(--border)" }}>
+            <p className="font-medium" style={{ color: "var(--text-muted)" }}>No versions available yet.</p>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {(["release", "beta", "dev"] as const).map((type) => {
               const group = grouped[type];
               if (group.length === 0) return null;
-              const meta = TYPE_LABELS[type];
+              const cfg = TYPE_CONFIG[type];
 
               return (
                 <section key={type}>
-                  <h2 className={`text-lg font-semibold ${meta.color} mb-3`}>{meta.label}</h2>
+                  <h2 className="text-sm font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>
+                    {cfg.label}
+                  </h2>
                   <div className="space-y-2">
                     {group.map((v) => (
                       <Link
                         key={v.id}
                         href={`/projects/${id}/versions/${encodeURIComponent(v.version)}`}
-                        className="flex items-center justify-between bg-gray-900 border border-gray-800 hover:border-gray-600 rounded-lg px-5 py-3 transition-colors"
+                        className="bg-white rounded-2xl px-5 py-4 flex items-center justify-between transition-shadow hover:shadow-md"
+                        style={{ border: "1px solid var(--border)" }}
                       >
                         <div className="flex items-center gap-3">
-                          <span className={`text-xs px-2 py-0.5 rounded border font-mono ${meta.badge}`}>
+                          <span
+                            className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                            style={cfg.badge}
+                          >
                             {type}
                           </span>
-                          <span className="text-white font-mono font-medium">{v.version}</span>
+                          <span className="font-mono font-semibold text-sm" style={{ color: "var(--text)" }}>{v.version}</span>
                           {v.description && (
-                            <span className="text-gray-400 text-sm">— {v.description}</span>
+                            <span className="text-sm hidden sm:block" style={{ color: "var(--text-muted)" }}>— {v.description}</span>
                           )}
                         </div>
-                        <span className="text-gray-500 text-xs">
+                        <span className="text-xs shrink-0 ml-3" style={{ color: "var(--text-muted)" }}>
                           {new Date(v.created_at).toLocaleDateString()}
                         </span>
                       </Link>

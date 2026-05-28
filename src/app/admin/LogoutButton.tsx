@@ -13,7 +13,10 @@ export default function LogoutButton() {
   return (
     <button
       onClick={handleLogout}
-      className="w-full text-left px-3 py-2 rounded text-sm text-red-400 hover:bg-red-900/30 hover:text-red-300 transition-colors"
+      className="w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-colors"
+      style={{ color: "#ef4444" }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = "#fef2f2")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
       Logout
     </button>

@@ -19,8 +19,7 @@ rsync -avz --exclude='node_modules' --exclude='.next' --exclude='data' --exclude
 ssh oeinct "cd /opt/deploy-web && \
   PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.nvm/versions/node/v24.14.1/bin \
   npm install --legacy-peer-deps && \
-  npm run build && \
-  cp -r .next/static .next/standalone/.next/static"
+  npm run build"
 
 # 4. 환경변수 설정
 ssh oeinct "nano /opt/deploy-web/.env"
@@ -55,7 +54,6 @@ ssh oeinct "cd /opt/deploy-web && \
   PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.nvm/versions/node/v24.14.1/bin \
   npm install --legacy-peer-deps && \
   npm run build && \
-  cp -r .next/static .next/standalone/.next/static && \
   systemctl restart deploy-web"
 
 # 3. 상태 확인
