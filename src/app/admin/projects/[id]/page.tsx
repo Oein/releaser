@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import EditProjectForm from "./EditProjectForm";
 
 export const dynamic = "force-dynamic";
 
@@ -57,8 +58,11 @@ export default async function AdminProjectDetailPage({ params }: { params: Promi
       </nav>
 
       <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>{project.name}</h1>
+        <div className="flex-1 min-w-0 mr-4">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>{project.name}</h1>
+            <EditProjectForm id={id} initialName={project.name} initialDescription={project.description} />
+          </div>
           {project.description && (
             <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{project.description}</p>
           )}

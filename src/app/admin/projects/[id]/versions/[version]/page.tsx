@@ -2,6 +2,7 @@
 
 import { useState, use, useEffect, useCallback } from "react";
 import FileIcon from "@/components/FileIcon";
+import EditVersionForm from "./EditVersionForm";
 import Link from "next/link";
 
 interface FileRow {
@@ -99,9 +100,15 @@ export default function AdminVersionPage({ params }: { params: Promise<{ id: str
       </nav>
 
       {versionData && badge && (
-        <div className="flex items-center gap-3 mb-8">
-          <h1 className="text-2xl font-bold font-mono" style={{ color: "var(--text)" }}>{versionData.version}</h1>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={badge}>{versionData.type}</span>
+        <div className="mb-8">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold font-mono" style={{ color: "var(--text)" }}>{versionData.version}</h1>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={badge}>{versionData.type}</span>
+            <EditVersionForm projectId={id} version={version} initialDescription={versionData.description} />
+          </div>
+          {versionData.description && (
+            <p className="text-sm mt-2" style={{ color: "var(--text-muted)" }}>{versionData.description}</p>
+          )}
         </div>
       )}
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Markdown from "react-markdown";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +82,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         <div className="bg-white rounded-2xl p-6 mb-6" style={{ border: "1px solid var(--border)" }}>
           <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>{project.name}</h1>
           {project.description && (
-            <p className="text-sm mt-1.5" style={{ color: "var(--text-muted)" }}>{project.description}</p>
+            <div className="prose prose-sm mt-2 max-w-none" style={{ color: "var(--text-muted)" }}>
+              <Markdown>{project.description}</Markdown>
+            </div>
           )}
         </div>
 

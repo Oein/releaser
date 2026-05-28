@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import FileIcon from "@/components/FileIcon";
+import Markdown from "react-markdown";
 
 export const dynamic = "force-dynamic";
 
@@ -92,7 +93,9 @@ export default async function VersionPage({ params }: { params: Promise<{ id: st
             </span>
           </div>
           {versionRow.description && (
-            <p className="text-sm mt-2" style={{ color: "var(--text-muted)" }}>{versionRow.description}</p>
+            <div className="prose prose-sm mt-2 max-w-none" style={{ color: "var(--text-muted)" }}>
+              <Markdown>{versionRow.description}</Markdown>
+            </div>
           )}
           <p className="text-xs mt-3" style={{ color: "var(--text-muted)" }}>
             Released {new Date(versionRow.created_at).toLocaleDateString()}
