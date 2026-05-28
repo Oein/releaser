@@ -9,13 +9,27 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen flex" style={{ background: "var(--bg)" }}>
-      {/* Sidebar */}
+      <style>{`
+        .admin-nav-link {
+          display: flex;
+          align-items: center;
+          padding: 10px 12px;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-muted);
+          transition: background 0.15s, color 0.15s;
+          text-decoration: none;
+        }
+        .admin-nav-link:hover {
+          background: var(--bg);
+          color: var(--text);
+        }
+      `}</style>
+
       <aside
         className="w-56 shrink-0 flex flex-col"
-        style={{
-          background: "var(--surface)",
-          borderRight: "1px solid var(--border)",
-        }}
+        style={{ background: "var(--surface)", borderRight: "1px solid var(--border)" }}
       >
         <div className="p-5" style={{ borderBottom: "1px solid var(--border)" }}>
           <Link href="/admin" className="flex items-center gap-2">
@@ -26,47 +40,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5">
-          {[
-            { href: "/admin", label: "Dashboard" },
-            { href: "/admin/projects", label: "Projects" },
-            { href: "/admin/api-keys", label: "API Keys" },
-            { href: "/admin/docs", label: "API Docs" },
-          ].map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className="flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
-              style={{ color: "var(--text-muted)" }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "var(--bg)";
-                (e.currentTarget as HTMLElement).style.color = "var(--text)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "transparent";
-                (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
-              }}
-            >
-              {label}
-            </Link>
-          ))}
+          <Link href="/admin" className="admin-nav-link">Dashboard</Link>
+          <Link href="/admin/projects" className="admin-nav-link">Projects</Link>
+          <Link href="/admin/api-keys" className="admin-nav-link">API Keys</Link>
+          <Link href="/admin/docs" className="admin-nav-link">API Docs</Link>
         </nav>
 
         <div className="p-3 space-y-0.5" style={{ borderTop: "1px solid var(--border)" }}>
-          <Link
-            href="/"
-            className="block px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
-            style={{ color: "var(--text-muted)" }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "var(--bg)";
-              (e.currentTarget as HTMLElement).style.color = "var(--text)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-              (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
-            }}
-          >
-            View Site
-          </Link>
+          <Link href="/" className="admin-nav-link">View Site</Link>
           <LogoutButton />
         </div>
       </aside>

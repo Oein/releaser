@@ -11,14 +11,24 @@ export default function LogoutButton() {
   }
 
   return (
-    <button
-      onClick={handleLogout}
-      className="w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-colors"
-      style={{ color: "#ef4444" }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = "#fef2f2")}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-    >
-      Logout
-    </button>
+    <>
+      <style>{`
+        .logout-btn {
+          width: 100%;
+          text-align: left;
+          padding: 10px 12px;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 500;
+          color: #ef4444;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+        .logout-btn:hover { background: #fef2f2; }
+      `}</style>
+      <button onClick={handleLogout} className="logout-btn">Logout</button>
+    </>
   );
 }
