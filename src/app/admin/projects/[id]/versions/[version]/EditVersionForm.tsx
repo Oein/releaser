@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Drawer from "@/components/Drawer";
 import MarkdownEditor from "@/components/MarkdownEditor";
 
 interface Props {
@@ -12,10 +13,21 @@ interface Props {
 
 export default function EditVersionForm({ projectId, version, initialDescription }: Props) {
   const router = useRouter();
-  const [editing, setEditing] = useState(false);
+  const [open, setOpen] = useState(false);
   const [description, setDescription] = useState(initialDescription ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  function handleOpen() {
+    setDescription(initialDescription ?? "");
+    setError("");
+    setOpen(true);
+  }
+
+  function handleClose() {
+    setOpen(false);
+    setError("");
+  }
 
   async function handleSave() {
     setError("");
@@ -31,7 +43,7 @@ export default function EditVersionForm({ projectId, version, initialDescription
       );
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Failed to update"); return; }
-      setEditing(false);
+      setOpen(false);
       router.refresh();
     } catch {
       setError("Network error");
@@ -40,12 +52,12 @@ export default function EditVersionForm({ projectId, version, initialDescription
     }
   }
 
-  if (!editing) {
-    return (
+  return (
+    <>
       <button
-        onClick={() => setEditing(true)}
+        onClick={handleOpen}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-opacity hover:opacity-70"
-        style={{ background: "var(--bg)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+        style={{ cursor: "pointer", background: "var(--bg)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
@@ -53,35 +65,35 @@ export default function EditVersionForm({ projectId, version, initialDescription
         </svg>
         편집
       </button>
-    );
-  }
 
-  return (
-    <div className="bg-white rounded-2xl p-5 mt-4" style={{ border: "1px solid var(--border)" }}>
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-2.5 rounded-xl mb-4">{error}</div>
-      )}
-      <div>
-        <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>설명</label>
-        <MarkdownEditor value={description} onChange={setDescription} />
-      </div>
-      <div className="flex gap-2 mt-4">
-        <button
-          onClick={handleSave}
-          disabled={loading}
-          className="px-4 py-2 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          style={{ background: "var(--brand)" }}
-        >
-          {loading ? "저장 중..." : "저장"}
-        </button>
-        <button
-          onClick={() => { setEditing(false); setDescription(initialDescription ?? ""); setError(""); }}
-          className="px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
-          style={{ background: "var(--bg)", color: "var(--text)", border: "1px solid var(--border)" }}
-        >
-          취소
-        </button>
-      </div>
-    </div>
+      <Drawer open={open} onClose={handleClose} title={`${version} 편집`}>
+        <div className="space-y-5">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-2.5 rounded-xl">{error}</div>
+          )}
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>설명</label>
+            <MarkdownEditor value={description} onChange={setDescription} rows={8} />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{ cursor: "pointer", background: "var(--brand)" }}
+            >
+              {loading ? "저장 중..." : "저장"}
+            </button>
+            <button
+              onClick={handleClose}
+              className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              style={{ cursor: "pointer", background: "var(--bg)", color: "var(--text)", border: "1px solid var(--border)" }}
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      </Drawer>
+    </>
   );
 }
