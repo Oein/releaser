@@ -51,14 +51,10 @@ runs:
         TYPE: ${{ inputs.type }}
         DESCRIPTION: ${{ inputs.description }}
       run: |
-        RESPONSE=$(curl -sf -X POST \
-          "${RELEASER_URL}/api/admin/projects/${PROJECT_ID}/versions" \
-          -H "Authorization: Bearer ${RELEASER_API_KEY}" \
-          -H "Content-Type: application/json" \
-          -d "{\"version\":\"${VERSION}\",\"type\":\"${TYPE}\",\"description\":\"${DESCRIPTION}\"}" \
-          2>&1)
-
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+        # -s: silent, -w: write HTTP code, -o: response body to file
+        # Do NOT use -f — we handle non-2xx ourselves
+        BODY=$(mktemp)
+        HTTP_CODE=$(curl -s -w "%{http_code}" -o "$BODY" -X POST \
           "${RELEASER_URL}/api/admin/projects/${PROJECT_ID}/versions" \
           -H "Authorization: Bearer ${RELEASER_API_KEY}" \
           -H "Content-Type: application/json" \
@@ -69,16 +65,24 @@ runs:
         elif [ "$HTTP_CODE" = "409" ]; then
           echo "ℹ Version ${VERSION} already exists, continuing"
         else
-          # Try to get the version ID from an existing version
-          echo "Create returned HTTP ${HTTP_CODE} — checking if version exists"
+          echo "✗ Failed to create version — HTTP ${HTTP_CODE}"
+          cat "$BODY"
+          rm -f "$BODY"
+          exit 1
         fi
+        rm -f "$BODY"
 
-        # Fetch version ID
-        VERSION_DATA=$(curl -sf \
-          "${RELEASER_URL}/api/v1/projects/${PROJECT_ID}/versions/${VERSION}" \
-          -H "Authorization: Bearer ${RELEASER_API_KEY}")
+        # Fetch version ID (version string may contain special chars — URL-encode it)
+        ENCODED_VERSION=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "${VERSION}")
+        VERSION_DATA=$(curl -s \
+          "${RELEASER_URL}/api/v1/projects/${PROJECT_ID}/versions/${ENCODED_VERSION}")
 
         VERSION_ID=$(echo "$VERSION_DATA" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+        if [ -z "$VERSION_ID" ]; then
+          echo "✗ Could not fetch version ID"
+          echo "$VERSION_DATA"
+          exit 1
+        fi
         echo "version-id=${VERSION_ID}" >> "$GITHUB_OUTPUT"
         echo "Version ID: ${VERSION_ID}"
 
@@ -92,24 +96,27 @@ runs:
         VERSION: ${{ inputs.version }}
         FILES: ${{ inputs.files }}
       run: |
-        ENCODED_VERSION=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "$VERSION")
+        ENCODED_VERSION=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "${VERSION}")
         UPLOAD_URL="${RELEASER_URL}/api/admin/projects/${PROJECT_ID}/versions/${ENCODED_VERSION}/files"
+        FAILED=0
 
-        echo "$FILES" | while IFS= read -r pattern; do
+        while IFS= read -r pattern; do
           [ -z "$pattern" ] && continue
-          # expand glob
           for file in $pattern; do
             [ -f "$file" ] || continue
-            echo "Uploading: $file"
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            BODY=$(mktemp)
+            HTTP_CODE=$(curl -s -w "%{http_code}" -o "$BODY" \
               -X POST "$UPLOAD_URL" \
               -H "Authorization: Bearer ${RELEASER_API_KEY}" \
               -F "file=@${file}")
             if [ "$HTTP_CODE" = "201" ]; then
-              echo "  ✓ $(basename $file)"
+              echo "✓ $(basename "$file")"
             else
-              echo "  ✗ $(basename $file) — HTTP ${HTTP_CODE}"
-              exit 1
+              echo "✗ $(basename "$file") — HTTP ${HTTP_CODE}: $(cat "$BODY")"
+              FAILED=1
             fi
+            rm -f "$BODY"
           done
-        done
+        done <<< "$FILES"
+
+        [ "$FAILED" = "0" ] || exit 1
