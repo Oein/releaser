@@ -181,7 +181,22 @@ function GithubActionsTab() {
 
       {/* Quick start */}
       <section>
-        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--text)" }}>GitHub Actions</h2>
+        <div className="flex items-start justify-between gap-4 mb-1">
+          <h2 className="text-xl font-bold" style={{ color: "var(--text)" }}>GitHub Actions</h2>
+          <a
+            href="/docs/github-actions.md"
+            download="releaser-github-actions.md"
+            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-opacity hover:opacity-80"
+            style={{ background: "var(--bg)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Markdown 다운로드
+          </a>
+        </div>
         <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>
           <code className="font-mono px-1.5 py-0.5 rounded" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>Oein/releaser@main</code>를 사용해 다른 레포의 워크플로우에서 바로 버전을 만들고 파일을 올릴 수 있습니다.
         </p>
