@@ -107,6 +107,78 @@ const spec = {
         },
       },
     },
+    "/projects/{id}/versions/latest": {
+      get: {
+        summary: "Get latest release version",
+        operationId: "getLatestRelease",
+        tags: ["Latest"],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" }, description: "Project ID" },
+        ],
+        responses: {
+          "200": {
+            description: "Latest release version with files",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/VersionWithFiles" },
+              },
+            },
+          },
+          "404": { description: "Project not found or no release version exists" },
+        },
+      },
+    },
+    "/projects/{id}/versions/latest/beta": {
+      get: {
+        summary: "Get latest beta version",
+        operationId: "getLatestBeta",
+        tags: ["Latest"],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": {
+            description: "Latest beta version with files",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/VersionWithFiles" } } },
+          },
+          "404": { description: "Project not found or no beta version exists" },
+        },
+      },
+    },
+    "/projects/{id}/versions/latest/dev": {
+      get: {
+        summary: "Get latest dev version",
+        operationId: "getLatestDev",
+        tags: ["Latest"],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": {
+            description: "Latest dev version with files",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/VersionWithFiles" } } },
+          },
+          "404": { description: "Project not found or no dev version exists" },
+        },
+      },
+    },
+    "/projects/{id}/versions/latest/all": {
+      get: {
+        summary: "Get latest version (any type)",
+        operationId: "getLatestAny",
+        tags: ["Latest"],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": {
+            description: "Most recently created version with files, regardless of type",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/VersionWithFiles" } } },
+          },
+          "404": { description: "Project not found or no versions exist" },
+        },
+      },
+    },
     "/projects/{id}/versions/{version}": {
       get: {
         summary: "Get a specific version",
@@ -208,6 +280,16 @@ const spec = {
           type: { type: "string", enum: ["release", "beta", "dev"] },
           description: { type: "string", nullable: true },
           created_at: { type: "string", format: "date-time" },
+        },
+      },
+      VersionWithFiles: {
+        type: "object",
+        properties: {
+          version: { $ref: "#/components/schemas/Version" },
+          files: {
+            type: "array",
+            items: { $ref: "#/components/schemas/File" },
+          },
         },
       },
       File: {
