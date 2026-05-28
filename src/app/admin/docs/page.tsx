@@ -44,6 +44,96 @@ function CodeBlock({ code, lang = "yaml" }: { code: string; lang?: string }) {
   );
 }
 
+const DISPATCH_BASIC = `name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version string (e.g. v1.2.3)'
+        required: true
+        type: string
+      type:
+        description: 'Release type'
+        required: true
+        type: choice
+        default: release
+        options:
+          - release
+          - beta
+          - dev
+      description:
+        description: 'Release notes'
+        required: false
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: make build
+
+      - uses: Oein/releaser@main
+        with:
+          url: https://oein.fyi
+          api-key: \${{ secrets.RELEASER_API_KEY }}
+          project: \${{ secrets.RELEASER_PROJECT }}
+          version: \${{ inputs.version }}
+          type: \${{ inputs.type }}
+          description: \${{ inputs.description }}
+          files: |
+            dist/*.zip
+            dist/*.exe
+            dist/*.dmg`;
+
+const DISPATCH_WITH_TAG = `name: Release on Tag
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (leave empty to use git tag)'
+        required: false
+        type: string
+      type:
+        description: 'Release type'
+        required: true
+        type: choice
+        default: release
+        options: [release, beta, dev]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        run: |
+          VERSION="\${{ inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION="\${{ github.ref_name }}"
+          fi
+          echo "value=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build
+        run: make build
+
+      - uses: Oein/releaser@main
+        with:
+          url: https://oein.fyi
+          api-key: \${{ secrets.RELEASER_API_KEY }}
+          project: \${{ secrets.RELEASER_PROJECT }}
+          version: \${{ steps.ver.outputs.value }}
+          type: \${{ inputs.type || 'release' }}
+          files: dist/**`;
+
 const FULL_EXAMPLE = `name: Release
 
 on:
@@ -181,6 +271,41 @@ function GithubActionsTab() {
             <p className="font-semibold text-sm mb-3" style={{ color: "var(--text)" }}>3. 워크플로우에 추가</p>
             <CodeBlock lang="yaml" code={`- uses: Oein/releaser@main\n  with:\n    url: https://oein.fyi\n    api-key: \${{ secrets.RELEASER_API_KEY }}\n    project: \${{ secrets.RELEASER_PROJECT }}\n    version: \${{ github.ref_name }}\n    type: release\n    files: |\n      dist/**`} />
           </div>
+        </div>
+      </section>
+
+      {/* workflow_dispatch */}
+      <section>
+        <h2 className="text-lg font-bold mb-1" style={{ color: "var(--text)" }}>workflow_dispatch — 수동 트리거</h2>
+        <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>
+          GitHub Actions UI에서 버전, 타입, 설명을 직접 입력해 수동으로 배포할 수 있습니다.
+          <code className="font-mono px-1.5 py-0.5 rounded mx-1" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>type: choice</code>
+          를 사용하면 드롭다운으로 release / beta / dev를 선택할 수 있습니다.
+        </p>
+
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm font-semibold mb-2" style={{ color: "var(--text)" }}>기본 — 수동 입력만</p>
+            <CodeBlock code={DISPATCH_BASIC} />
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold mb-2" style={{ color: "var(--text)" }}>태그 push + 수동 트리거 병행</p>
+            <p className="text-sm mb-2" style={{ color: "var(--text-muted)" }}>
+              태그를 push하면 자동으로, 필요할 때는 GitHub UI에서 수동으로도 실행할 수 있습니다.
+              수동 실행 시 version을 비워두면 현재 git 태그를 그대로 사용합니다.
+            </p>
+            <CodeBlock code={DISPATCH_WITH_TAG} />
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-xl p-4 text-sm" style={{ background: "#eff6ff", border: "1px solid #bfdbfe" }}>
+          <p className="font-semibold mb-2" style={{ color: "#1d4ed8" }}>수동 실행 방법</p>
+          <ol className="space-y-1 list-decimal list-inside" style={{ color: "#1e40af" }}>
+            <li>레포 → <strong>Actions</strong> 탭</li>
+            <li>워크플로우 선택 → <strong>Run workflow</strong> 버튼</li>
+            <li>입력값 채우고 <strong>Run workflow</strong> 클릭</li>
+          </ol>
         </div>
       </section>
 
