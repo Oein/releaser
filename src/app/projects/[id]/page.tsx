@@ -87,6 +87,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                 src={`/api/projects/${id}/icon`}
                 alt=""
                 className="w-14 h-14 rounded-2xl object-cover shrink-0"
+                style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.08)" }}
               />
             )}
             <div className="min-w-0">

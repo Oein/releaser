@@ -133,7 +133,7 @@ export default function EditProjectForm({ id, initialName, initialDescription, h
                 style={{ background: "var(--bg)", border: "1px solid var(--border)" }}
               >
                 {displayIcon ? (
-                  <img src={displayIcon} alt="icon" className="w-full h-full object-cover" />
+                  <img src={displayIcon} alt="icon" className="w-full h-full object-cover rounded-2xl" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)" }} />
                 ) : (
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-muted)" }}>
                     <rect x="3" y="3" width="18" height="18" rx="4"/>

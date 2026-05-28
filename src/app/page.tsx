@@ -78,6 +78,7 @@ export default async function HomePage() {
                       src={`/api/projects/${project.id}/icon`}
                       alt=""
                       className="w-10 h-10 rounded-xl object-cover shrink-0"
+                      style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)" }}
                     />
                   )}
                   <div className="min-w-0">
