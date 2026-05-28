@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb, FILES_DIR } from "@/lib/db";
+import { getDb, getFilesDir } from "@/lib/db";
 import { requireAdminAuth } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import path from "path";
@@ -40,7 +40,7 @@ export async function POST(
     }
 
     const filename = file.name;
-    const versionFilesDir = path.join(FILES_DIR, versionRow.id);
+    const versionFilesDir = path.join(getFilesDir(), versionRow.id);
 
     if (!fs.existsSync(versionFilesDir)) {
       fs.mkdirSync(versionFilesDir, { recursive: true });

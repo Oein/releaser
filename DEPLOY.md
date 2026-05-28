@@ -16,9 +16,11 @@ rsync -avz --exclude='node_modules' --exclude='.next' --exclude='data' --exclude
   /home/oein/deploy-web/ oeinct:/opt/deploy-web/
 
 # 3. 서버에서 의존성 설치 및 빌드
+# npm rebuild better-sqlite3 필수 — Node.js 버전에 맞게 native 바이너리 재컴파일
 ssh oeinct "cd /opt/deploy-web && \
   PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.nvm/versions/node/v24.14.1/bin \
   npm install --legacy-peer-deps && \
+  npm rebuild better-sqlite3 && \
   npm run build"
 
 # 4. 환경변수 설정
@@ -53,6 +55,7 @@ rsync -avz \
 ssh oeinct "cd /opt/deploy-web && \
   PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.nvm/versions/node/v24.14.1/bin \
   npm install --legacy-peer-deps && \
+  npm rebuild better-sqlite3 && \
   npm run build && \
   systemctl restart deploy-web"
 
