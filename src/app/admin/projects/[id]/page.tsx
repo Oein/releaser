@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import EditProjectForm from "./EditProjectForm";
 import DeleteProjectButton from "./DeleteProjectButton";
-import DeleteVersionButton from "./DeleteVersionButton";
+import VersionList from "./VersionList";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +13,7 @@ interface Version {
   description: string | null;
   created_at: string;
   file_count: number;
+  tags: string[];
 }
 
 interface Project {
@@ -26,10 +27,12 @@ interface Project {
 
 async function getData(id: string) {
   const { getDb } = await import("@/lib/db");
+  const { getProjectTags, getVersionTags } = await import("@/lib/tags");
   const db = getDb();
   const project = db.prepare("SELECT * FROM projects WHERE id = ?").get(id) as Project | undefined;
   if (!project) return null;
-  const versions = db.prepare(`
+  const projectTags = getProjectTags(db, id);
+  const versionRows = db.prepare(`
     SELECT v.id, v.version, v.type, v.description, v.created_at,
            COUNT(f.id) as file_count
     FROM versions v
@@ -38,20 +41,16 @@ async function getData(id: string) {
     GROUP BY v.id
     ORDER BY v.created_at DESC
   `).all(id) as Version[];
-  return { project, versions };
+  const versions = versionRows.map((v) => ({ ...v, tags: getVersionTags(db, v.id) }));
+  return { project, projectTags, versions };
 }
 
-const TYPE_BADGE: Record<string, { background: string; color: string }> = {
-  release: { background: "#dcfce7", color: "#15803d" },
-  beta:    { background: "#fef9c3", color: "#a16207" },
-  dev:     { background: "#dbeafe", color: "#1d4ed8" },
-};
 
 export default async function AdminProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const data = await getData(id);
   if (!data) notFound();
-  const { project, versions } = data;
+  const { project, projectTags, versions } = data;
 
   return (
     <div className="p-8">
@@ -65,11 +64,20 @@ export default async function AdminProjectDetailPage({ params }: { params: Promi
         <div className="flex-1 min-w-0 mr-4">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>{project.name}</h1>
-            <EditProjectForm id={id} initialName={project.name} initialSummary={project.summary} initialDescription={project.description} hasIcon={!!project.icon_path} />
+            <EditProjectForm id={id} initialName={project.name} initialSummary={project.summary} initialDescription={project.description} initialTags={projectTags} hasIcon={!!project.icon_path} />
           <DeleteProjectButton id={id} name={project.name} />
           </div>
           {project.summary && (
             <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{project.summary}</p>
+          )}
+          {projectTags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {projectTags.map((tag) => (
+                <span key={tag} className="text-xs px-2.5 py-1 rounded-full" style={{ background: "#f0f9ff", color: "#0369a1", border: "1px solid #bae6fd" }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
           )}
         </div>
         <Link
@@ -85,57 +93,7 @@ export default async function AdminProjectDetailPage({ params }: { params: Promi
         Versions ({versions.length})
       </h2>
 
-      {versions.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center" style={{ border: "1px solid var(--border)" }}>
-          <p className="font-medium mb-1" style={{ color: "var(--text)" }}>No versions yet</p>
-          <Link href={`/admin/projects/${id}/versions/new`} className="text-sm" style={{ color: "var(--brand-dark)" }}>
-            Create first version →
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {versions.map((v) => {
-            const badge = TYPE_BADGE[v.type] ?? { background: "#f4f4f5", color: "#71717a" };
-            return (
-              <div
-                key={v.id}
-                className="bg-white rounded-2xl px-5 py-4 flex items-center justify-between"
-                style={{ border: "1px solid var(--border)" }}
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
-                    style={badge}
-                  >
-                    {v.type}
-                  </span>
-                  <span className="font-mono font-semibold text-sm" style={{ color: "var(--text)" }}>{v.version}</span>
-                  {v.description && (
-                    <span className="text-sm hidden md:block" style={{ color: "var(--text-muted)" }}>— {v.description.split("\n")[0].trim()}</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-5 shrink-0 ml-3">
-                  <div className="text-right hidden sm:block">
-                    <p className="text-sm font-medium" style={{ color: "var(--text)" }}>{v.file_count}</p>
-                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>files</p>
-                  </div>
-                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    {new Date(v.created_at).toLocaleDateString()}
-                  </span>
-                  <Link
-                    href={`/admin/projects/${id}/versions/${encodeURIComponent(v.version)}`}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-opacity hover:opacity-80"
-                    style={{ background: "var(--bg)", color: "var(--text)", border: "1px solid var(--border)" }}
-                  >
-                    Manage
-                  </Link>
-                  <DeleteVersionButton projectId={id} version={v.version} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <VersionList projectId={id} projectTags={projectTags} initialVersions={versions} />
     </div>
   );
 }

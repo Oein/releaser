@@ -19,6 +19,7 @@ interface Version {
   version: string;
   type: string;
   description: string | null;
+  tags: string[];
 }
 
 function formatBytes(bytes: number | null): string {
@@ -40,6 +41,7 @@ export default function AdminVersionPage({ params }: { params: Promise<{ id: str
 
   const [versionData, setVersionData] = useState<Version | null>(null);
   const [files, setFiles] = useState<FileRow[]>([]);
+  const [projectTags, setProjectTags] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
@@ -47,12 +49,14 @@ export default function AdminVersionPage({ params }: { params: Promise<{ id: str
 
   const loadData = useCallback(async () => {
     try {
-      const [vRes, fRes] = await Promise.all([
+      const [vRes, fRes, pRes] = await Promise.all([
         fetch(`/api/v1/projects/${id}/versions/${encodeURIComponent(version)}`),
         fetch(`/api/v1/projects/${id}/versions/${encodeURIComponent(version)}/files`),
+        fetch(`/api/v1/projects/${id}`),
       ]);
       if (vRes.ok) setVersionData((await vRes.json()).version);
       if (fRes.ok) setFiles((await fRes.json()).files);
+      if (pRes.ok) setProjectTags((await pRes.json()).project?.tags ?? []);
     } finally {
       setLoading(false);
     }
@@ -105,9 +109,25 @@ export default function AdminVersionPage({ params }: { params: Promise<{ id: str
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold font-mono" style={{ color: "var(--text)" }}>{versionData.version}</h1>
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={badge}>{versionData.type}</span>
-            <EditVersionForm projectId={id} version={version} initialDescription={versionData.description} />
+            <EditVersionForm
+              projectId={id}
+              version={version}
+              initialDescription={versionData.description}
+              projectTags={projectTags}
+              initialTags={versionData.tags ?? []}
+              onSaved={(tags) => setVersionData((v) => v ? { ...v, tags } : v)}
+            />
             <DeleteVersionButton projectId={id} version={version} />
           </div>
+          {(versionData.tags ?? []).length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {(versionData.tags ?? []).map((tag) => (
+                <span key={tag} className="text-xs px-2.5 py-1 rounded-full" style={{ background: "#f0f9ff", color: "#0369a1", border: "1px solid #bae6fd" }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
           {versionData.description && (
             <p className="text-sm mt-2" style={{ color: "var(--text-muted)" }}>{versionData.description}</p>
           )}

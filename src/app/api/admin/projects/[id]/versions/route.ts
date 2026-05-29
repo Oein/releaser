@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { requireAdminAuth } from "@/lib/auth";
 import { validateVersionFormat, getVersionTypeFromString } from "@/lib/validate";
+import { getVersionTags } from "@/lib/tags";
 import { randomUUID } from "crypto";
 
 export async function POST(
@@ -22,7 +23,7 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { version, type, description } = body;
+    const { version, type, description, tags } = body;
 
     if (!version || typeof version !== "string" || !version.trim()) {
       return NextResponse.json({ error: "Version string is required" }, { status: 400 });
@@ -61,8 +62,28 @@ export async function POST(
       throw err;
     }
 
+    // Apply tags if provided
+    if (Array.isArray(tags)) {
+      const normalizedTags = [...new Set(
+        (tags as unknown[])
+          .filter((t) => typeof t === "string" && (t as string).trim())
+          .map((t) => (t as string).trim().toLowerCase())
+      )];
+      const projectTagRows = db
+        .prepare("SELECT id, name FROM project_tags WHERE project_id = ?")
+        .all(id) as { id: string; name: string }[];
+      const tagMap = new Map(projectTagRows.map((t) => [t.name, t.id]));
+      for (const tagName of normalizedTags) {
+        const tagId = tagMap.get(tagName);
+        if (tagId) {
+          db.prepare("INSERT OR IGNORE INTO version_tags (version_id, tag_id) VALUES (?, ?)").run(versionId, tagId);
+        }
+      }
+    }
+
     const versionRow = db.prepare("SELECT * FROM versions WHERE id = ?").get(versionId);
-    return NextResponse.json({ version: versionRow }, { status: 201 });
+    const versionTags = getVersionTags(db, versionId);
+    return NextResponse.json({ version: { ...(versionRow as object), tags: versionTags } }, { status: 201 });
   } catch (err) {
     if (err instanceof SyntaxError) {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });

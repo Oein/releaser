@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { getLatestVersion } from "../_helper";
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return getLatestVersion(id, "beta");
+  const tag = req.nextUrl.searchParams.get("tag") ?? undefined;
+  return getLatestVersion(id, "beta", tag);
 }

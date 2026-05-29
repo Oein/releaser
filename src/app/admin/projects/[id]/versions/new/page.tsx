@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, use, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -22,8 +22,23 @@ export default function NewVersionPage({ params }: { params: Promise<{ id: strin
   const [version, setVersion] = useState("");
   const [type, setType] = useState<"release" | "beta" | "dev">("release");
   const [description, setDescription] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [projectTags, setProjectTags] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/v1/projects/${id}`)
+      .then((r) => r.json())
+      .then((data) => setProjectTags(data.project?.tags ?? []))
+      .catch(() => {});
+  }, [id]);
+
+  function toggleTag(tag: string) {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,7 +48,7 @@ export default function NewVersionPage({ params }: { params: Promise<{ id: strin
       const res = await fetch(`/api/admin/projects/${id}/versions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ version, type, description }),
+        body: JSON.stringify({ version, type, description, tags: selectedTags }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Failed to create version"); return; }
@@ -127,6 +142,33 @@ export default function NewVersionPage({ params }: { params: Promise<{ id: strin
             placeholder="Optional release notes..."
           />
         </div>
+
+        {projectTags.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text)" }}>Tags</label>
+            <div className="flex flex-wrap gap-2">
+              {projectTags.map((tag) => {
+                const active = selectedTags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTag(tag)}
+                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                    style={{
+                      cursor: "pointer",
+                      background: active ? "#0369a1" : "#f0f9ff",
+                      color: active ? "#fff" : "#0369a1",
+                      border: `1px solid ${active ? "#0369a1" : "#bae6fd"}`,
+                    }}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-3 pt-1">
           <button

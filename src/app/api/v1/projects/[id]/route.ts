@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { getProjectTags } from "@/lib/tags";
 
 export async function GET(
   _request: NextRequest,
@@ -15,5 +16,6 @@ export async function GET(
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ project });
+  const tags = getProjectTags(db, id);
+  return NextResponse.json({ project: { ...(project as object), tags } });
 }

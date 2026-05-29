@@ -10,15 +10,18 @@ interface Props {
   initialName: string;
   initialSummary: string | null;
   initialDescription: string | null;
+  initialTags: string[];
   hasIcon: boolean;
 }
 
-export default function EditProjectForm({ id, initialName, initialSummary, initialDescription, hasIcon }: Props) {
+export default function EditProjectForm({ id, initialName, initialSummary, initialDescription, initialTags, hasIcon }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(initialName);
   const [summary, setSummary] = useState(initialSummary ?? "");
   const [description, setDescription] = useState(initialDescription ?? "");
+  const [tags, setTags] = useState<string[]>(initialTags);
+  const [tagInput, setTagInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [iconPreview, setIconPreview] = useState<string | null>(null);
@@ -31,10 +34,22 @@ export default function EditProjectForm({ id, initialName, initialSummary, initi
     setName(initialName);
     setSummary(initialSummary ?? "");
     setDescription(initialDescription ?? "");
+    setTags(initialTags);
+    setTagInput("");
     setError("");
     setIconPreview(null);
     setIconFile(null);
     setOpen(true);
+  }
+
+  function addTag() {
+    const t = tagInput.trim().toLowerCase();
+    if (t && !tags.includes(t)) setTags((prev) => [...prev, t].sort());
+    setTagInput("");
+  }
+
+  function removeTag(tag: string) {
+    setTags((prev) => prev.filter((t) => t !== tag));
   }
 
   function handleClose() {
@@ -77,7 +92,7 @@ export default function EditProjectForm({ id, initialName, initialSummary, initi
       const res = await fetch(`/api/admin/projects/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, summary, description }),
+        body: JSON.stringify({ name, summary, description, tags }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Failed to update"); return; }
@@ -213,6 +228,54 @@ export default function EditProjectForm({ id, initialName, initialSummary, initi
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>본문 설명 (Markdown)</label>
             <MarkdownEditor value={description} onChange={setDescription} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>태그</label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
+                placeholder="태그 이름 입력 후 Enter"
+                className="flex-1 rounded-xl px-3 py-2 text-sm outline-none"
+                style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "var(--brand)")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+              />
+              <button
+                type="button"
+                onClick={addTag}
+                className="px-3 py-2 rounded-xl text-sm font-medium transition-opacity hover:opacity-70"
+                style={{ cursor: "pointer", background: "var(--brand)", color: "#fff" }}
+              >
+                추가
+              </button>
+            </div>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+                    style={{ background: "#f0f9ff", color: "#0369a1", border: "1px solid #bae6fd" }}
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="ml-0.5 hover:opacity-60 transition-opacity"
+                      style={{ cursor: "pointer", lineHeight: 1 }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            {tags.length === 0 && (
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>태그가 없습니다. 버전별로 이 태그들을 달 수 있습니다.</p>
+            )}
           </div>
           <div className="flex gap-2 pt-2">
             <button

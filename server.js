@@ -60,6 +60,17 @@ db.exec(`
     key_prefix TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+  CREATE TABLE IF NOT EXISTS project_tags (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    UNIQUE(project_id, name)
+  );
+  CREATE TABLE IF NOT EXISTS version_tags (
+    version_id TEXT NOT NULL REFERENCES versions(id) ON DELETE CASCADE,
+    tag_id TEXT NOT NULL REFERENCES project_tags(id) ON DELETE CASCADE,
+    PRIMARY KEY(version_id, tag_id)
+  );
 `);
 
 try { db.exec("ALTER TABLE projects ADD COLUMN icon_path TEXT"); } catch {}

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, getFilesDir } from "@/lib/db";
 import { requireAdminAuth } from "@/lib/auth";
+import { getProjectTags } from "@/lib/tags";
+import { randomUUID } from "crypto";
 import fs from "fs";
 import path from "path";
 
@@ -19,7 +21,7 @@ export async function PATCH(
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
   const body = await request.json();
-  const { name, summary, description } = body;
+  const { name, summary, description, tags } = body;
 
   if (name !== undefined) {
     if (typeof name !== "string" || !name.trim()) {
@@ -45,8 +47,41 @@ export async function PATCH(
       .run(description?.trim() || null, id);
   }
 
+  if (tags !== undefined) {
+    if (!Array.isArray(tags)) {
+      return NextResponse.json({ error: "tags must be an array of strings" }, { status: 400 });
+    }
+    const newTags = [...new Set(
+      (tags as unknown[])
+        .filter((t) => typeof t === "string" && (t as string).trim())
+        .map((t) => (t as string).trim().toLowerCase())
+    )];
+
+    db.transaction(() => {
+      const currentTags = db
+        .prepare("SELECT id, name FROM project_tags WHERE project_id = ?")
+        .all(id) as { id: string; name: string }[];
+      const currentMap = new Map(currentTags.map((t) => [t.name, t.id]));
+      const newSet = new Set(newTags);
+
+      for (const [name, tagId] of currentMap) {
+        if (!newSet.has(name)) {
+          db.prepare("DELETE FROM project_tags WHERE id = ?").run(tagId);
+        }
+      }
+
+      for (const tagName of newTags) {
+        if (!currentMap.has(tagName)) {
+          db.prepare("INSERT OR IGNORE INTO project_tags (id, project_id, name) VALUES (?, ?, ?)")
+            .run(randomUUID(), id, tagName);
+        }
+      }
+    })();
+  }
+
   const updated = db.prepare("SELECT * FROM projects WHERE id = ?").get(id);
-  return NextResponse.json({ project: updated });
+  const projectTags = getProjectTags(db, id);
+  return NextResponse.json({ project: { ...(updated as object), tags: projectTags } });
 }
 
 export async function DELETE(

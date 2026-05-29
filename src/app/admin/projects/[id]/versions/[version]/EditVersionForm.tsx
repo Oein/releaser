@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Drawer from "@/components/Drawer";
 import MarkdownEditor from "@/components/MarkdownEditor";
@@ -9,17 +9,27 @@ interface Props {
   projectId: string;
   version: string;
   initialDescription: string | null;
+  projectTags: string[];
+  initialTags: string[];
+  onSaved?: (tags: string[]) => void;
 }
 
-export default function EditVersionForm({ projectId, version, initialDescription }: Props) {
+export default function EditVersionForm({ projectId, version, initialDescription, projectTags, initialTags, onSaved }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState(initialDescription ?? "");
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialTags);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // props가 바뀌면 (onSaved 후 parent가 tags를 업데이트) 동기화
+  useEffect(() => {
+    if (!open) setSelectedTags(initialTags);
+  }, [initialTags, open]);
+
   function handleOpen() {
     setDescription(initialDescription ?? "");
+    setSelectedTags(initialTags);
     setError("");
     setOpen(true);
   }
@@ -27,6 +37,12 @@ export default function EditVersionForm({ projectId, version, initialDescription
   function handleClose() {
     setOpen(false);
     setError("");
+  }
+
+  function toggleTag(tag: string) {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
   }
 
   async function handleSave() {
@@ -38,12 +54,13 @@ export default function EditVersionForm({ projectId, version, initialDescription
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ description }),
+          body: JSON.stringify({ description, tags: selectedTags }),
         }
       );
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Failed to update"); return; }
       setOpen(false);
+      onSaved?.(data.version?.tags ?? selectedTags);
       router.refresh();
     } catch {
       setError("Network error");
@@ -74,6 +91,36 @@ export default function EditVersionForm({ projectId, version, initialDescription
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>설명</label>
             <MarkdownEditor value={description} onChange={setDescription} rows={8} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text)" }}>태그</label>
+            {projectTags.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {projectTags.map((tag) => {
+                  const active = selectedTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleTag(tag)}
+                      className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                      style={{
+                        cursor: "pointer",
+                        background: active ? "#0369a1" : "#f0f9ff",
+                        color: active ? "#fff" : "#0369a1",
+                        border: `1px solid ${active ? "#0369a1" : "#bae6fd"}`,
+                      }}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs px-1" style={{ color: "var(--text-muted)" }}>
+                이 프로젝트에 태그가 없습니다. 프로젝트 편집에서 태그를 먼저 추가하세요.
+              </p>
+            )}
           </div>
           <div className="flex gap-2 pt-2">
             <button

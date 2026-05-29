@@ -21,6 +21,14 @@ const VERSION_PARAM = {
     "Must be URL-encoded when it contains special characters (e.g. `v1.0.0+build.1` → `v1.0.0%2Bbuild.1`).",
 };
 
+const TAG_QUERY_PARAM = {
+  name: "tag",
+  in: "query",
+  required: false,
+  schema: { type: "string", example: "linux" },
+  description: "Restrict to versions that carry this tag. Tag names are stored lowercase.",
+};
+
 const FILE_ID_PARAM = {
   name: "fileId",
   in: "path",
@@ -121,7 +129,7 @@ const spec = {
     "/projects/{id}/versions": {
       get: {
         summary: "List versions for a project",
-        description: "Returns all versions for the project, ordered newest first. Optionally filter by channel type.",
+        description: "Returns all versions for the project, ordered newest first. Optionally filter by channel type and/or tag.",
         operationId: "listVersions",
         tags: ["Versions"],
         parameters: [
@@ -132,6 +140,13 @@ const spec = {
             required: false,
             schema: { type: "string", enum: ["release", "beta", "dev"] },
             description: "Filter by channel. Omit to return all channels.",
+          },
+          {
+            name: "tag",
+            in: "query",
+            required: false,
+            schema: { type: "string", example: "linux" },
+            description: "Filter to versions that have this tag. Tag names are case-insensitive (stored lowercase).",
           },
         ],
         responses: {
@@ -200,17 +215,19 @@ const spec = {
     "/projects/{id}/versions/latest": {
       get: {
         summary: "Get latest release version",
-        description: "Returns the most recently created version in the `release` channel, along with its files.",
+        description:
+          "Returns the most recently created version in the `release` channel, along with its files. " +
+          "Use `?tag=` to narrow to the latest release that also carries a specific tag.",
         operationId: "getLatestRelease",
         tags: ["Latest"],
-        parameters: [PROJECT_ID_PARAM],
+        parameters: [PROJECT_ID_PARAM, TAG_QUERY_PARAM],
         responses: {
           "200": {
             description: "Latest release version with its files.",
             content: { "application/json": { schema: { $ref: "#/components/schemas/VersionWithFiles" } } },
           },
           "404": {
-            description: "Project not found, or no `release` versions exist yet.",
+            description: "Project not found, or no matching `release` version exists.",
             content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
           },
         },
@@ -219,17 +236,19 @@ const spec = {
     "/projects/{id}/versions/latest/beta": {
       get: {
         summary: "Get latest beta version",
-        description: "Returns the most recently created version in the `beta` channel, along with its files.",
+        description:
+          "Returns the most recently created version in the `beta` channel, along with its files. " +
+          "Use `?tag=` to narrow to the latest beta that also carries a specific tag.",
         operationId: "getLatestBeta",
         tags: ["Latest"],
-        parameters: [PROJECT_ID_PARAM],
+        parameters: [PROJECT_ID_PARAM, TAG_QUERY_PARAM],
         responses: {
           "200": {
             description: "Latest beta version with its files.",
             content: { "application/json": { schema: { $ref: "#/components/schemas/VersionWithFiles" } } },
           },
           "404": {
-            description: "Project not found, or no `beta` versions exist yet.",
+            description: "Project not found, or no matching `beta` version exists.",
             content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
           },
         },
@@ -238,17 +257,19 @@ const spec = {
     "/projects/{id}/versions/latest/dev": {
       get: {
         summary: "Get latest dev version",
-        description: "Returns the most recently created version in the `dev` channel, along with its files.",
+        description:
+          "Returns the most recently created version in the `dev` channel, along with its files. " +
+          "Use `?tag=` to narrow to the latest dev build that also carries a specific tag.",
         operationId: "getLatestDev",
         tags: ["Latest"],
-        parameters: [PROJECT_ID_PARAM],
+        parameters: [PROJECT_ID_PARAM, TAG_QUERY_PARAM],
         responses: {
           "200": {
             description: "Latest dev version with its files.",
             content: { "application/json": { schema: { $ref: "#/components/schemas/VersionWithFiles" } } },
           },
           "404": {
-            description: "Project not found, or no `dev` versions exist yet.",
+            description: "Project not found, or no matching `dev` version exists.",
             content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
           },
         },
@@ -257,17 +278,19 @@ const spec = {
     "/projects/{id}/versions/latest/all": {
       get: {
         summary: "Get latest version (any channel)",
-        description: "Returns the single most recently created version across all channels (`release`, `beta`, `dev`), along with its files.",
+        description:
+          "Returns the single most recently created version across all channels (`release`, `beta`, `dev`), along with its files. " +
+          "Use `?tag=` to narrow to the most recent version that carries a specific tag.",
         operationId: "getLatestAny",
         tags: ["Latest"],
-        parameters: [PROJECT_ID_PARAM],
+        parameters: [PROJECT_ID_PARAM, TAG_QUERY_PARAM],
         responses: {
           "200": {
             description: "Most recent version (any channel) with its files.",
             content: { "application/json": { schema: { $ref: "#/components/schemas/VersionWithFiles" } } },
           },
           "404": {
-            description: "Project not found, or the project has no versions yet.",
+            description: "Project not found, or the project has no matching versions.",
             content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
           },
         },
@@ -329,7 +352,7 @@ const spec = {
     schemas: {
       Project: {
         type: "object",
-        required: ["id", "name", "created_at"],
+        required: ["id", "name", "created_at", "tags"],
         properties: {
           id: {
             ...UUID_SCHEMA,
@@ -340,10 +363,21 @@ const spec = {
             description: "Unique human-readable project name.",
             example: "my-app",
           },
+          summary: {
+            type: "string",
+            nullable: true,
+            description: "Optional one-line summary. `null` if not set.",
+          },
           description: {
             type: "string",
             nullable: true,
             description: "Optional Markdown description. `null` if not set.",
+          },
+          tags: {
+            type: "array",
+            items: { type: "string" },
+            description: "Tag names available for versions of this project. All lowercase, sorted alphabetically.",
+            example: ["arm64", "linux", "windows"],
           },
           created_at: {
             type: "string",
@@ -355,7 +389,7 @@ const spec = {
       },
       Version: {
         type: "object",
-        required: ["id", "project_id", "version", "type", "created_at"],
+        required: ["id", "project_id", "version", "type", "created_at", "tags"],
         properties: {
           id: {
             ...UUID_SCHEMA,
@@ -382,6 +416,14 @@ const spec = {
             type: "string",
             nullable: true,
             description: "Optional Markdown release notes. `null` if not set.",
+          },
+          tags: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "Tags attached to this version. Must be a subset of the parent project's tag list. " +
+              "All lowercase, sorted alphabetically. Use `?tag=` on list/latest endpoints to filter by tag.",
+            example: ["linux", "windows"],
           },
           created_at: {
             type: "string",

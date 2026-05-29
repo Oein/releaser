@@ -26,7 +26,8 @@ const spec = {
                 required: ["name"],
                 properties: {
                   name: { type: "string", example: "my-app" },
-                  description: { type: "string" },
+                  summary: { type: "string", description: "One-line summary" },
+                  description: { type: "string", description: "Markdown description" },
                 },
               },
             },
@@ -40,14 +41,86 @@ const spec = {
         },
       },
     },
+    "/projects/{id}": {
+      patch: {
+        summary: "Update a project",
+        description:
+          "Updates any combination of the project's name, summary, description, and tag list. " +
+          "When `tags` is provided it **replaces** the entire tag list atomically — " +
+          "tags removed from the list are also removed from any versions that had them. " +
+          "Tag names are normalized to lowercase.",
+        operationId: "updateProject",
+        tags: ["Projects"],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  name: { type: "string", example: "my-app" },
+                  summary: { type: "string", description: "One-line summary" },
+                  description: { type: "string", description: "Markdown description" },
+                  tags: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Replaces the full tag list. Duplicates and whitespace are ignored. Example: `[\"linux\", \"windows\", \"arm64\"]`",
+                    example: ["linux", "windows", "arm64"],
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Updated project including current tag list.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { project: { $ref: "#/components/schemas/AdminProject" } },
+                },
+              },
+            },
+          },
+          "400": { description: "Invalid input" },
+          "401": { description: "Unauthorized" },
+          "404": { description: "Project not found" },
+          "409": { description: "Project name already exists" },
+        },
+      },
+      delete: {
+        summary: "Delete a project",
+        description: "Deletes the project and all its versions and files.",
+        operationId: "deleteProject",
+        tags: ["Projects"],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        ],
+        responses: {
+          "200": { description: "Deleted" },
+          "401": { description: "Unauthorized" },
+          "404": { description: "Project not found" },
+        },
+      },
+    },
     "/projects/{id}/versions": {
       post: {
         summary: "Create a version for a project",
+        description:
+          "Creates a new version. Tags in `tags` must already exist in the project's tag list " +
+          "(set via `updateProject`); unrecognised tag names are silently ignored.",
         operationId: "createVersion",
         tags: ["Versions"],
         security: [{ bearerAuth: [] }, { sessionAuth: [] }],
         parameters: [
-          { name: "id", in: "path", required: true, schema: { type: "string" } },
+          { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
         ],
         requestBody: {
           required: true,
@@ -60,17 +133,100 @@ const spec = {
                   version: { type: "string", example: "v1.0.0" },
                   type: { type: "string", enum: ["release", "beta", "dev"] },
                   description: { type: "string" },
+                  tags: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Tags to attach. Must be a subset of the project's tag list.",
+                    example: ["linux", "windows"],
+                  },
                 },
               },
             },
           },
         },
         responses: {
-          "201": { description: "Version created" },
+          "201": {
+            description: "Version created.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { version: { $ref: "#/components/schemas/AdminVersion" } },
+                },
+              },
+            },
+          },
           "400": { description: "Invalid version format" },
           "401": { description: "Unauthorized" },
           "404": { description: "Project not found" },
           "409": { description: "Version already exists" },
+        },
+      },
+    },
+    "/projects/{id}/versions/{version}": {
+      patch: {
+        summary: "Update a version",
+        description:
+          "Updates the version's description and/or tags. " +
+          "When `tags` is provided it **replaces** the version's tag list atomically. " +
+          "Tags must be from the parent project's tag list; unrecognised names are ignored.",
+        operationId: "updateVersion",
+        tags: ["Versions"],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "version", in: "path", required: true, schema: { type: "string" }, description: "URL-encoded version label" },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  description: { type: "string", nullable: true },
+                  tags: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Replaces the version's tag list. Must be a subset of the project's tag list.",
+                    example: ["arm64"],
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Updated version.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { version: { $ref: "#/components/schemas/AdminVersion" } },
+                },
+              },
+            },
+          },
+          "400": { description: "Invalid input" },
+          "401": { description: "Unauthorized" },
+          "404": { description: "Version not found" },
+        },
+      },
+      delete: {
+        summary: "Delete a version",
+        description: "Deletes the version and all its uploaded files from disk.",
+        operationId: "deleteVersion",
+        tags: ["Versions"],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "version", in: "path", required: true, schema: { type: "string" }, description: "URL-encoded version label" },
+        ],
+        responses: {
+          "200": { description: "Deleted" },
+          "401": { description: "Unauthorized" },
+          "404": { description: "Version not found" },
         },
       },
     },
@@ -200,6 +356,40 @@ const spec = {
       },
     },
     schemas: {
+      AdminProject: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          name: { type: "string", example: "my-app" },
+          summary: { type: "string", nullable: true },
+          description: { type: "string", nullable: true },
+          icon_path: { type: "string", nullable: true },
+          tags: {
+            type: "array",
+            items: { type: "string" },
+            description: "Allowed tag names for this project's versions.",
+            example: ["linux", "windows", "arm64"],
+          },
+          created_at: { type: "string", format: "date-time" },
+        },
+      },
+      AdminVersion: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          project_id: { type: "string", format: "uuid" },
+          version: { type: "string", example: "v1.0.0" },
+          type: { type: "string", enum: ["release", "beta", "dev"] },
+          description: { type: "string", nullable: true },
+          tags: {
+            type: "array",
+            items: { type: "string" },
+            description: "Tags attached to this version.",
+            example: ["linux", "windows"],
+          },
+          created_at: { type: "string", format: "date-time" },
+        },
+      },
       ApiKey: {
         type: "object",
         properties: {

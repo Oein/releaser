@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { getVersionTags } from "@/lib/tags";
 
 export async function GET(
   _request: NextRequest,
@@ -13,11 +14,12 @@ export async function GET(
     .prepare(
       "SELECT id, project_id, version, type, description, created_at FROM versions WHERE project_id = ? AND version = ?"
     )
-    .get(id, decodedVersion);
+    .get(id, decodedVersion) as { id: string } | undefined;
 
   if (!versionRow) {
     return NextResponse.json({ error: "Version not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ version: versionRow });
+  const tags = getVersionTags(db, versionRow.id);
+  return NextResponse.json({ version: { ...versionRow, tags } });
 }
