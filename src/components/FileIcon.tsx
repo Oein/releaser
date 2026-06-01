@@ -17,6 +17,14 @@ export default function FileIcon({ filename }: { filename: string }) {
     );
   }
 
+  if (ext === "apk" || ext === "aab") {
+    return (
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style={{ color: "#3ddc84" }}>
+        <path d="M17.523 15.341a.498.498 0 01-.495.495H6.972a.498.498 0 01-.495-.495V8.66a.498.498 0 01.495-.495h10.056a.498.498 0 01.495.495v6.681zm-5.52-12.26l.98-1.7a.2.2 0 00-.347-.2l-.992 1.718a6.432 6.432 0 00-2.57 0L8.082 1.181a.2.2 0 00-.347.2l.98 1.7A6.459 6.459 0 005.14 7.17h13.72a6.459 6.459 0 00-2.857-4.089zM9 5.5a.5.5 0 110-1 .5.5 0 010 1zm6 0a.5.5 0 110-1 .5.5 0 010 1zM5.477 8.165v9.503a1 1 0 001 1h.5v2.833a1 1 0 002 0V18.67h2v2.833a1 1 0 002 0V18.67h.5a1 1 0 001-1V8.165H5.477z" />
+      </svg>
+    );
+  }
+
   if (ext === "zip" || ext === "tar" || ext === "gz" || ext === "7z" || ext === "rar") {
     return (
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ color: "#f59e0b" }}>
