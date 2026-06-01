@@ -34,6 +34,7 @@ jobs:
           version: ${{ github.ref_name }}   # e.g. v1.2.3 from the tag
           type: release
           description: "Released from GitHub Actions"
+          tags: stable, lts                # optional: comma-separated project tags
           files: |
             dist/app-linux
             dist/app-win.exe

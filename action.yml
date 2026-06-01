@@ -22,6 +22,13 @@ inputs:
     description: Release notes / version description
     required: false
     default: ''
+  tags:
+    description: >
+      Comma-separated list of tags to apply to this version.
+      Tags must already exist on the project.
+      Example: stable, lts
+    required: false
+    default: ''
   files:
     description: >
       Newline-separated list of file paths or glob patterns to upload.
@@ -50,6 +57,7 @@ runs:
         VERSION: ${{ inputs.version }}
         TYPE: ${{ inputs.type }}
         DESCRIPTION: ${{ inputs.description }}
+        TAGS: ${{ inputs.tags }}
       run: |
         # Auto-prefix 'v' for release/beta if not already present
         if [[ "$TYPE" != "dev" && "$VERSION" != v* ]]; then
@@ -58,6 +66,17 @@ runs:
         fi
         echo "normalized-version=${VERSION}" >> "$GITHUB_OUTPUT"
 
+        # Build tags JSON array from comma-separated input
+        TAGS_JSON="[]"
+        if [ -n "$TAGS" ]; then
+          TAGS_JSON=$(python3 -c "
+import json, sys
+raw = sys.argv[1]
+tags = [t.strip() for t in raw.split(',') if t.strip()]
+print(json.dumps(tags))
+" "$TAGS")
+        fi
+
         # -s: silent, -w: write HTTP code, -o: response body to file
         # Do NOT use -f — we handle non-2xx ourselves
         BODY=$(mktemp)
@@ -65,7 +84,7 @@ runs:
           "${RELEASER_URL}/api/admin/projects/${PROJECT_ID}/versions" \
           -H "Authorization: Bearer ${RELEASER_API_KEY}" \
           -H "Content-Type: application/json" \
-          -d "{\"version\":\"${VERSION}\",\"type\":\"${TYPE}\",\"description\":\"${DESCRIPTION}\"}")
+          -d "{\"version\":\"${VERSION}\",\"type\":\"${TYPE}\",\"description\":\"${DESCRIPTION}\",\"tags\":${TAGS_JSON}}")
 
         if [ "$HTTP_CODE" = "201" ]; then
           echo "✓ Version ${VERSION} created"
