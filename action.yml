@@ -69,12 +69,7 @@ runs:
         # Build tags JSON array from comma-separated input
         TAGS_JSON="[]"
         if [ -n "$TAGS" ]; then
-          TAGS_JSON=$(python3 -c "
-import json, sys
-raw = sys.argv[1]
-tags = [t.strip() for t in raw.split(',') if t.strip()]
-print(json.dumps(tags))
-" "$TAGS")
+          TAGS_JSON=$(python3 -c "import json,sys;tags=[t.strip() for t in sys.argv[1].split(',') if t.strip()];print(json.dumps(tags))" "$TAGS")
         fi
 
         # -s: silent, -w: write HTTP code, -o: response body to file
