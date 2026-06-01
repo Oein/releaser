@@ -15,18 +15,28 @@ export async function GET(
   }
 
   const typeFilter = request.nextUrl.searchParams.get("type");
-  const tagFilter = request.nextUrl.searchParams.get("tag");
 
-  let query: string;
+  // Support ?tags=a,b,c (multi) and legacy ?tag=a (single)
+  const tagsParam = request.nextUrl.searchParams.get("tags");
+  const tagParam = request.nextUrl.searchParams.get("tag");
+  const tagFilters = tagsParam
+    ? tagsParam.split(",").map((t) => t.trim()).filter(Boolean)
+    : tagParam
+    ? [tagParam.trim()]
+    : [];
+
   const args: unknown[] = [id];
+  let query: string;
 
-  if (tagFilter) {
-    query = `SELECT v.id, v.project_id, v.version, v.type, v.description, v.created_at
-             FROM versions v
-             JOIN version_tags vt ON v.id = vt.version_id
-             JOIN project_tags pt ON vt.tag_id = pt.id
-             WHERE v.project_id = ? AND pt.name = ?`;
-    args.push(tagFilter);
+  if (tagFilters.length > 0) {
+    // Each tag requires a separate JOIN to enforce AND semantics
+    const joins = tagFilters
+      .map((_, i) => `JOIN version_tags vt${i} ON v.id = vt${i}.version_id JOIN project_tags pt${i} ON vt${i}.tag_id = pt${i}.id AND pt${i}.name = ?`)
+      .join(" ");
+    query = `SELECT DISTINCT v.id, v.project_id, v.version, v.type, v.description, v.created_at FROM versions v ${joins} WHERE v.project_id = ?`;
+    // args: [tag1, tag2, ..., projectId]
+    args.length = 0;
+    args.push(...tagFilters, id);
     if (typeFilter && ["release", "beta", "dev"].includes(typeFilter)) {
       query += " AND v.type = ?";
       args.push(typeFilter);

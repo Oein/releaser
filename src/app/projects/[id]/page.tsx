@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Markdown from "react-markdown";
+import { ProjectVersionList } from "@/components/ProjectVersionList";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ interface Version {
   type: "release" | "beta" | "dev";
   description: string | null;
   created_at: string;
+  tags: string[];
 }
 
 interface Project {
@@ -22,48 +24,25 @@ interface Project {
   created_at: string;
 }
 
-function firstLine(s: string | null): string | null {
-  if (!s) return null;
-  return s.split("\n")[0].trim() || null;
-}
-
 async function getData(id: string) {
   const { getDb } = await import("@/lib/db");
+  const { getVersionTags, getProjectTags } = await import("@/lib/tags");
   const db = getDb();
   const project = db.prepare("SELECT id, name, summary, description, icon_path, created_at FROM projects WHERE id = ?").get(id) as Project | undefined;
   if (!project) return null;
-  const versions = db.prepare(
+  const rows = db.prepare(
     "SELECT id, project_id, version, type, description, created_at FROM versions WHERE project_id = ? ORDER BY created_at DESC"
-  ).all(id) as Version[];
-  return { project, versions };
+  ).all(id) as Omit<Version, "tags">[];
+  const versions: Version[] = rows.map((v) => ({ ...v, tags: getVersionTags(db, v.id) }));
+  const availableTags = getProjectTags(db, id);
+  return { project, versions, availableTags };
 }
-
-const TYPE_CONFIG = {
-  release: {
-    label: "Releases",
-    badge: { background: "#dcfce7", color: "#15803d", border: "#bbf7d0" },
-  },
-  beta: {
-    label: "Beta",
-    badge: { background: "#fef9c3", color: "#a16207", border: "#fde68a" },
-  },
-  dev: {
-    label: "Dev",
-    badge: { background: "#dbeafe", color: "#1d4ed8", border: "#bfdbfe" },
-  },
-};
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const data = await getData(id);
   if (!data) notFound();
-  const { project, versions } = data;
-
-  const grouped = {
-    release: versions.filter((v) => v.type === "release"),
-    beta: versions.filter((v) => v.type === "beta"),
-    dev: versions.filter((v) => v.type === "dev"),
-  };
+  const { project, versions, availableTags } = data;
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
@@ -110,56 +89,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           )}
         </div>
 
-        {versions.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center" style={{ border: "1px solid var(--border)" }}>
-            <p className="font-medium" style={{ color: "var(--text-muted)" }}>No versions available yet.</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {(["release", "beta", "dev"] as const).map((type) => {
-              const group = grouped[type];
-              if (group.length === 0) return null;
-              const cfg = TYPE_CONFIG[type];
-
-              return (
-                <section key={type}>
-                  <h2 className="text-sm font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>
-                    {cfg.label}
-                  </h2>
-                  <div className="space-y-2">
-                    {group.map((v) => {
-                      const line = firstLine(v.description);
-                      return (
-                        <Link
-                          key={v.id}
-                          href={`/projects/${id}/versions/${encodeURIComponent(v.version)}`}
-                          className="bg-white rounded-2xl px-5 py-4 flex items-center justify-between transition-shadow hover:shadow-md"
-                          style={{ border: "1px solid var(--border)" }}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span
-                              className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
-                              style={cfg.badge}
-                            >
-                              {type}
-                            </span>
-                            <span className="font-mono font-semibold text-sm shrink-0" style={{ color: "var(--text)" }}>{v.version}</span>
-                            {line && (
-                              <span className="text-sm hidden sm:block truncate" style={{ color: "var(--text-muted)" }}>— {line}</span>
-                            )}
-                          </div>
-                          <span className="text-xs shrink-0 ml-3" style={{ color: "var(--text-muted)" }}>
-                            {new Date(v.created_at).toLocaleDateString()}
-                          </span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-        )}
+        <ProjectVersionList versions={versions} projectId={id} availableTags={availableTags} />
       </main>
     </div>
   );
