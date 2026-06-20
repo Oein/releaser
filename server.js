@@ -16,7 +16,9 @@ const app = next({ dev });
 const handle = app.getRequestHandler();
 
 // --- DB setup ---
-const DATA_DIR = path.join(process.cwd(), "data");
+const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.join(process.cwd(), "data");
 const FILES_DIR = path.join(DATA_DIR, "files");
 const ICONS_DIR = path.join(DATA_DIR, "icons");
 const DB_PATH = path.join(DATA_DIR, "deploy.db");
