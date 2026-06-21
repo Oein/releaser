@@ -19,11 +19,19 @@ const handle = app.getRequestHandler();
 const DATA_DIR = process.env.DATA_DIR
   ? path.resolve(process.env.DATA_DIR)
   : path.join(process.cwd(), "data");
-const FILES_DIR = path.join(DATA_DIR, "files");
-const ICONS_DIR = path.join(DATA_DIR, "icons");
-const DB_PATH = path.join(DATA_DIR, "deploy.db");
+const FILES_DIR = process.env.FILES_DIR
+  ? path.resolve(process.env.FILES_DIR)
+  : path.join(DATA_DIR, "files");
+const ICONS_DIR = process.env.ICONS_DIR
+  ? path.resolve(process.env.ICONS_DIR)
+  : path.join(DATA_DIR, "icons");
+const DB_PATH = process.env.DB_PATH
+  ? path.resolve(process.env.DB_PATH)
+  : path.join(DATA_DIR, "deploy.db");
 
+const DB_DIR = path.dirname(DB_PATH);
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
 if (!fs.existsSync(FILES_DIR)) fs.mkdirSync(FILES_DIR, { recursive: true });
 if (!fs.existsSync(ICONS_DIR)) fs.mkdirSync(ICONS_DIR, { recursive: true });
 
