@@ -20,21 +20,24 @@ interface Project {
   name: string;
   summary: string | null;
   description: string | null;
+  visibility: "public" | "url-only" | "private";
   icon_path: string | null;
   created_at: string;
 }
 
-async function getData(id: string) {
+async function getData(idOrAlias: string) {
   const { getDb } = await import("@/lib/db");
   const { getVersionTags, getProjectTags } = await import("@/lib/tags");
+  const { resolveProject, canAccessProjectFromSession } = await import("@/lib/projects");
   const db = getDb();
-  const project = db.prepare("SELECT id, name, summary, description, icon_path, created_at FROM projects WHERE id = ?").get(id) as Project | undefined;
+  const project = resolveProject(idOrAlias, "id, name, summary, description, visibility, icon_path, created_at", db) as Project | undefined;
   if (!project) return null;
+  if (!(await canAccessProjectFromSession(project.visibility))) return null;
   const rows = db.prepare(
     "SELECT id, project_id, version, type, description, created_at FROM versions WHERE project_id = ? ORDER BY created_at DESC"
-  ).all(id) as Omit<Version, "tags">[];
+  ).all(project.id) as Omit<Version, "tags">[];
   const versions: Version[] = rows.map((v) => ({ ...v, tags: getVersionTags(db, v.id) }));
-  const availableTags = getProjectTags(db, id);
+  const availableTags = getProjectTags(db, project.id);
   return { project, versions, availableTags };
 }
 

@@ -15,7 +15,7 @@ async function getProjects(): Promise<Project[]> {
     const { getDb } = await import("@/lib/db");
     const db = getDb();
     return db
-      .prepare("SELECT id, name, summary, icon_path, created_at FROM projects ORDER BY created_at DESC")
+      .prepare("SELECT id, name, summary, icon_path, created_at FROM projects WHERE visibility = 'public' ORDER BY created_at DESC")
       .all() as Project[];
   } catch {
     return [];

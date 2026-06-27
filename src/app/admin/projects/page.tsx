@@ -6,15 +6,23 @@ interface Project {
   id: string;
   name: string;
   summary: string | null;
+  visibility: "public" | "url-only" | "private";
+  alias: string | null;
   created_at: string;
   version_count: number;
 }
+
+const VISIBILITY_BADGE: Record<string, { label: string; background: string; color: string; border: string }> = {
+  "public": { label: "Public", background: "#dcfce7", color: "#15803d", border: "#bbf7d0" },
+  "url-only": { label: "URL only", background: "#fef9c3", color: "#a16207", border: "#fde68a" },
+  "private": { label: "Private", background: "#fee2e2", color: "#b91c1c", border: "#fecaca" },
+};
 
 async function getProjects() {
   const { getDb } = await import("@/lib/db");
   const db = getDb();
   return db.prepare(`
-    SELECT p.id, p.name, p.summary, p.created_at,
+    SELECT p.id, p.name, p.summary, p.visibility, p.alias, p.created_at,
            COUNT(v.id) as version_count
     FROM projects p
     LEFT JOIN versions v ON p.id = v.project_id
@@ -58,13 +66,28 @@ export default async function AdminProjectsPage() {
               style={{ border: "1px solid var(--border)" }}
             >
               <div>
-                <Link
-                  href={`/admin/projects/${project.id}`}
-                  className="font-semibold text-base transition-colors hover:opacity-70"
-                  style={{ color: "var(--text)" }}
-                >
-                  {project.name}
-                </Link>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Link
+                    href={`/admin/projects/${project.id}`}
+                    className="font-semibold text-base transition-colors hover:opacity-70"
+                    style={{ color: "var(--text)" }}
+                  >
+                    {project.name}
+                  </Link>
+                  {project.visibility !== "public" && (() => {
+                    const v = VISIBILITY_BADGE[project.visibility] ?? VISIBILITY_BADGE.public;
+                    return (
+                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: v.background, color: v.color, border: `1px solid ${v.border}` }}>
+                        {v.label}
+                      </span>
+                    );
+                  })()}
+                  {project.alias && (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: "var(--bg)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+                      /{project.alias}
+                    </span>
+                  )}
+                </div>
                 {project.summary && (
                   <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>{project.summary}</p>
                 )}

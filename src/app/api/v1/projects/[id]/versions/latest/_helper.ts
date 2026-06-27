@@ -1,14 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getVersionTags } from "@/lib/tags";
+import { resolveProject, canAccessProject } from "@/lib/projects";
 
 export type VersionType = "release" | "beta" | "dev" | "all";
 
-export function getLatestVersion(projectId: string, type: VersionType, tag?: string) {
+export async function getLatestVersion(
+  request: NextRequest,
+  idOrAlias: string,
+  type: VersionType,
+  tag?: string
+) {
   const db = getDb();
 
-  const project = db.prepare("SELECT id FROM projects WHERE id = ?").get(projectId);
-  if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  const resolved = resolveProject(idOrAlias, "id, visibility", db);
+  if (!resolved || !(await canAccessProject(resolved.visibility, request))) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+  const projectId = resolved.id;
 
   let versionRow: unknown;
 

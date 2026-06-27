@@ -8,6 +8,8 @@ export default function NewProjectPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [alias, setAlias] = useState("");
+  const [visibility, setVisibility] = useState<"public" | "url-only" | "private">("public");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -19,7 +21,7 @@ export default function NewProjectPage() {
       const res = await fetch("/api/admin/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({ name, description, alias, visibility }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Failed to create project"); return; }
@@ -70,6 +72,39 @@ export default function NewProjectPage() {
             required
             autoFocus
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>URL Alias</label>
+          <input
+            type="text"
+            value={alias}
+            onChange={(e) => setAlias(e.target.value)}
+            className="w-full rounded-xl px-4 py-2.5 text-sm outline-none font-mono"
+            style={inputStyle}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "var(--brand)")}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+            placeholder="my-app (optional)"
+          />
+          <p className="text-xs mt-1.5" style={{ color: "var(--text-muted)" }}>
+            Lowercase letters, numbers, hyphens. Enables <span className="font-mono">/projects/{alias || "alias"}</span>.
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>Visibility</label>
+          <select
+            value={visibility}
+            onChange={(e) => setVisibility(e.target.value as "public" | "url-only" | "private")}
+            className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
+            style={inputStyle}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "var(--brand)")}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+          >
+            <option value="public">Public — listed in site & API</option>
+            <option value="url-only">URL only — hidden from lists, reachable by URL</option>
+            <option value="private">Private — admin only</option>
+          </select>
         </div>
 
         <div>
