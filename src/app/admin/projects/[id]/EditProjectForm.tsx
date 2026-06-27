@@ -5,21 +5,27 @@ import { useRouter } from "next/navigation";
 import Drawer from "@/components/Drawer";
 import MarkdownEditor from "@/components/MarkdownEditor";
 
+type Visibility = "public" | "url-only" | "private";
+
 interface Props {
   id: string;
   initialName: string;
   initialSummary: string | null;
   initialDescription: string | null;
   initialTags: string[];
+  initialAlias: string | null;
+  initialVisibility: Visibility;
   hasIcon: boolean;
 }
 
-export default function EditProjectForm({ id, initialName, initialSummary, initialDescription, initialTags, hasIcon }: Props) {
+export default function EditProjectForm({ id, initialName, initialSummary, initialDescription, initialTags, initialAlias, initialVisibility, hasIcon }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(initialName);
   const [summary, setSummary] = useState(initialSummary ?? "");
   const [description, setDescription] = useState(initialDescription ?? "");
+  const [alias, setAlias] = useState(initialAlias ?? "");
+  const [visibility, setVisibility] = useState<Visibility>(initialVisibility);
   const [tags, setTags] = useState<string[]>(initialTags);
   const [tagInput, setTagInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,6 +40,8 @@ export default function EditProjectForm({ id, initialName, initialSummary, initi
     setName(initialName);
     setSummary(initialSummary ?? "");
     setDescription(initialDescription ?? "");
+    setAlias(initialAlias ?? "");
+    setVisibility(initialVisibility);
     setTags(initialTags);
     setTagInput("");
     setError("");
@@ -92,7 +100,7 @@ export default function EditProjectForm({ id, initialName, initialSummary, initi
       const res = await fetch(`/api/admin/projects/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, summary, description, tags }),
+        body: JSON.stringify({ name, summary, description, tags, alias, visibility }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Failed to update"); return; }
@@ -224,6 +232,37 @@ export default function EditProjectForm({ id, initialName, initialSummary, initi
               onFocus={(e) => (e.currentTarget.style.borderColor = "var(--brand)")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>URL 별칭 (Alias)</label>
+            <input
+              type="text"
+              value={alias}
+              onChange={(e) => setAlias(e.target.value)}
+              placeholder="예: my-app (비워두면 ID로만 접근)"
+              className="w-full rounded-xl px-4 py-2.5 text-sm outline-none font-mono"
+              style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--brand)")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+            />
+            <p className="text-xs mt-1.5" style={{ color: "var(--text-muted)" }}>
+              소문자, 숫자, 하이픈. 설정 시 <span className="font-mono">/projects/{alias || "별칭"}</span> 으로 접근 가능합니다.
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>공개 범위</label>
+            <select
+              value={visibility}
+              onChange={(e) => setVisibility(e.target.value as Visibility)}
+              className="w-full rounded-xl px-4 py-2.5 text-sm outline-none"
+              style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--brand)")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+            >
+              <option value="public">Public — 목록·API에 노출</option>
+              <option value="url-only">URL only — 목록·API 숨김, URL로 접근 가능</option>
+              <option value="private">Private — 관리자만 접근 가능</option>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text)" }}>본문 설명 (Markdown)</label>

@@ -34,12 +34,14 @@ function formatBytes(bytes: number | null): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-async function getData(projectId: string, version: string) {
+async function getData(idOrAlias: string, version: string) {
   const { getDb } = await import("@/lib/db");
+  const { resolveProject, canAccessProjectFromSession } = await import("@/lib/projects");
   const db = getDb();
-  const project = db.prepare("SELECT id, name FROM projects WHERE id = ?").get(projectId) as Project | undefined;
+  const project = resolveProject(idOrAlias, "id, name, visibility", db) as (Project & { visibility: "public" | "url-only" | "private" }) | undefined;
   if (!project) return null;
-  const versionRow = db.prepare("SELECT * FROM versions WHERE project_id = ? AND version = ?").get(projectId, version) as Version | undefined;
+  if (!(await canAccessProjectFromSession(project.visibility))) return null;
+  const versionRow = db.prepare("SELECT * FROM versions WHERE project_id = ? AND version = ?").get(project.id, version) as Version | undefined;
   if (!versionRow) return null;
   const files = db.prepare("SELECT id, filename, size, mime_type, created_at FROM files WHERE version_id = ? ORDER BY created_at ASC").all(versionRow.id) as FileRow[];
   return { project, version: versionRow, files };

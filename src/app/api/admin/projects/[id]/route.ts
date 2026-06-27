@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb, getFilesDir } from "@/lib/db";
 import { requireAdminAuth } from "@/lib/auth";
 import { getProjectTags } from "@/lib/tags";
+import { normalizeAlias, normalizeVisibility } from "@/lib/projects";
 import { randomUUID } from "crypto";
 import fs from "fs";
 import path from "path";
@@ -22,6 +23,29 @@ export async function PATCH(
 
   const body = await request.json();
   const { name, summary, description, tags } = body;
+
+  if (body.alias !== undefined) {
+    const aliasResult = normalizeAlias(body.alias);
+    if ("error" in aliasResult) {
+      return NextResponse.json({ error: aliasResult.error }, { status: 400 });
+    }
+    try {
+      db.prepare("UPDATE projects SET alias = ? WHERE id = ?").run(aliasResult.alias, id);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.includes("UNIQUE")) {
+        return NextResponse.json({ error: "Alias already exists" }, { status: 409 });
+      }
+      throw err;
+    }
+  }
+
+  if (body.visibility !== undefined) {
+    const visibilityResult = normalizeVisibility(body.visibility);
+    if ("error" in visibilityResult) {
+      return NextResponse.json({ error: visibilityResult.error }, { status: 400 });
+    }
+    db.prepare("UPDATE projects SET visibility = ? WHERE id = ?").run(visibilityResult.visibility, id);
+  }
 
   if (name !== undefined) {
     if (typeof name !== "string" || !name.trim()) {

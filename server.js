@@ -85,6 +85,11 @@ db.exec(`
 
 try { db.exec("ALTER TABLE projects ADD COLUMN icon_path TEXT"); } catch {}
 try { db.exec("ALTER TABLE projects ADD COLUMN summary TEXT"); } catch {}
+// Visibility: 'public' (listed + direct), 'url-only' (hidden from lists, direct ok), 'private' (admin only)
+try { db.exec("ALTER TABLE projects ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'"); } catch {}
+// Optional human-friendly URL alias; unique when set (NULLs allowed via partial index)
+try { db.exec("ALTER TABLE projects ADD COLUMN alias TEXT"); } catch {}
+try { db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_alias ON projects(alias) WHERE alias IS NOT NULL"); } catch {}
 
 global.__db = db;
 global.__filesDir = FILES_DIR;

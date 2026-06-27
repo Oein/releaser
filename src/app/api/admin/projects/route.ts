@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { requireAdminAuth } from "@/lib/auth";
+import { normalizeAlias, normalizeVisibility } from "@/lib/projects";
 import { randomUUID } from "crypto";
 
 export async function POST(request: NextRequest) {
@@ -16,16 +17,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Project name is required" }, { status: 400 });
     }
 
+    const aliasResult = normalizeAlias(body.alias);
+    if ("error" in aliasResult) {
+      return NextResponse.json({ error: aliasResult.error }, { status: 400 });
+    }
+    const visibilityResult = normalizeVisibility(body.visibility);
+    if ("error" in visibilityResult) {
+      return NextResponse.json({ error: visibilityResult.error }, { status: 400 });
+    }
+
     const db = getDb();
     const id = randomUUID();
 
     try {
       db.prepare(
-        "INSERT INTO projects (id, name, description) VALUES (?, ?, ?)"
-      ).run(id, name.trim(), description?.trim() || null);
+        "INSERT INTO projects (id, name, description, alias, visibility) VALUES (?, ?, ?, ?, ?)"
+      ).run(id, name.trim(), description?.trim() || null, aliasResult.alias, visibilityResult.visibility);
     } catch (err: unknown) {
       if (err instanceof Error && err.message.includes("UNIQUE")) {
-        return NextResponse.json({ error: "Project name already exists" }, { status: 409 });
+        const which = err.message.includes("alias") ? "Alias" : "Project name";
+        return NextResponse.json({ error: `${which} already exists` }, { status: 409 });
       }
       throw err;
     }

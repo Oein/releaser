@@ -6,6 +6,12 @@ import VersionList from "./VersionList";
 
 export const dynamic = "force-dynamic";
 
+const VISIBILITY_BADGE: Record<string, { label: string; background: string; color: string; border: string }> = {
+  "public": { label: "Public", background: "#dcfce7", color: "#15803d", border: "#bbf7d0" },
+  "url-only": { label: "URL only", background: "#fef9c3", color: "#a16207", border: "#fde68a" },
+  "private": { label: "Private", background: "#fee2e2", color: "#b91c1c", border: "#fecaca" },
+};
+
 interface Version {
   id: string;
   version: string;
@@ -21,6 +27,8 @@ interface Project {
   name: string;
   summary: string | null;
   description: string | null;
+  alias: string | null;
+  visibility: "public" | "url-only" | "private";
   icon_path: string | null;
   created_at: string;
 }
@@ -64,12 +72,27 @@ export default async function AdminProjectDetailPage({ params }: { params: Promi
         <div className="flex-1 min-w-0 mr-4">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>{project.name}</h1>
-            <EditProjectForm id={id} initialName={project.name} initialSummary={project.summary} initialDescription={project.description} initialTags={projectTags} hasIcon={!!project.icon_path} />
+            <EditProjectForm id={id} initialName={project.name} initialSummary={project.summary} initialDescription={project.description} initialTags={projectTags} initialAlias={project.alias} initialVisibility={project.visibility} hasIcon={!!project.icon_path} />
           <DeleteProjectButton id={id} name={project.name} />
           </div>
           {project.summary && (
             <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{project.summary}</p>
           )}
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            {(() => {
+              const v = VISIBILITY_BADGE[project.visibility] ?? VISIBILITY_BADGE.public;
+              return (
+                <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: v.background, color: v.color, border: `1px solid ${v.border}` }}>
+                  {v.label}
+                </span>
+              );
+            })()}
+            {project.alias && (
+              <span className="text-xs px-2.5 py-1 rounded-full font-mono" style={{ background: "var(--bg)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+                /projects/{project.alias}
+              </span>
+            )}
+          </div>
           {projectTags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {projectTags.map((tag) => (

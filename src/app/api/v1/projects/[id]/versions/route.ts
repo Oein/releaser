@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getVersionTags } from "@/lib/tags";
+import { resolveProject, canAccessProject } from "@/lib/projects";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const { id: idOrAlias } = await params;
   const db = getDb();
 
-  const project = db.prepare("SELECT id FROM projects WHERE id = ?").get(id);
-  if (!project) {
+  const project = resolveProject(idOrAlias, "id, visibility", db);
+  if (!project || !(await canAccessProject(project.visibility, request))) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
+  const id = project.id;
 
   const typeFilter = request.nextUrl.searchParams.get("type");
 

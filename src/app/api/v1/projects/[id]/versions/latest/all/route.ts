@@ -4,5 +4,5 @@ import { getLatestVersion } from "../_helper";
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const tag = req.nextUrl.searchParams.get("tag") ?? undefined;
-  return getLatestVersion(id, "all", tag);
+  return getLatestVersion(req, id, "all", tag);
 }
